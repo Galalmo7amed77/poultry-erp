@@ -1,0 +1,112 @@
+:root {
+  --navy: #0b1f3a;
+  --navy-2: #13305a;
+  --gold: #c9a227;
+  --gold-soft: #f6eccc;
+  --bg: #f4f6fa;
+  --card: #ffffff;
+  --text: #1c2433;
+  --muted: #6b7280;
+  --ok: #1e7b4a;
+  --err: #b42318;
+  --border: #dde3ee;
+  --radius: 12px;
+}
+
+* { box-sizing: border-box; }
+html, body { margin: 0; padding: 0; }
+body {
+  font-family: Tahoma, "Segoe UI", Arial, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  font-size: 16px;
+  line-height: 1.6;
+  -webkit-text-size-adjust: 100%;
+}
+h1 { font-size: 20px; margin: 12px 0; color: var(--navy); }
+h2 { font-size: 17px; margin: 0 0 12px; color: var(--navy); }
+small { color: var(--muted); }
+.loading { padding: 40px; text-align: center; color: var(--muted); }
+
+/* الشريط العلوي */
+.top {
+  background: var(--navy);
+  color: #fff;
+  padding: calc(10px + env(safe-area-inset-top, 0px)) 14px 10px;
+  display: flex; flex-direction: column; gap: 6px;
+  position: sticky; top: 0; z-index: 5;
+  border-bottom: 3px solid var(--gold);
+}
+.top .brand { font-weight: 700; color: var(--gold); font-size: 18px; }
+.top .me { display: flex; justify-content: space-between; align-items: center; gap: 8px; font-size: 14px; flex-wrap: wrap; }
+
+/* التنقل */
+.nav {
+  display: flex; gap: 6px; overflow-x: auto; padding: 8px 10px;
+  background: var(--navy-2); -webkit-overflow-scrolling: touch;
+}
+.nav a {
+  color: #dbe4f3; text-decoration: none; white-space: nowrap;
+  padding: 8px 12px; border-radius: 999px; font-size: 14px;
+}
+.nav a.active { background: var(--gold); color: var(--navy); font-weight: 700; }
+
+main { padding: 12px; max-width: 980px; margin: 0 auto; }
+
+.card {
+  background: var(--card); border: 1px solid var(--border);
+  border-radius: var(--radius); padding: 16px; margin-bottom: 14px;
+}
+.card.err { border-color: var(--err); color: var(--err); }
+.muted { color: var(--muted); font-size: 14px; }
+
+/* النماذج والأزرار */
+.form { display: grid; gap: 10px; }
+input, select {
+  width: 100%; padding: 12px; font-size: 16px;
+  border: 1px solid var(--border); border-radius: 10px; background: #fff; color: var(--text);
+  font-family: inherit;
+}
+input:focus, select:focus { outline: 2px solid var(--gold); border-color: var(--gold); }
+.btn {
+  padding: 11px 16px; border-radius: 10px; border: 1px solid var(--navy);
+  background: var(--navy); color: #fff; font-size: 15px; cursor: pointer; font-family: inherit;
+}
+.btn:disabled { opacity: .55; cursor: not-allowed; }
+.btn.gold { background: var(--gold); border-color: var(--gold); color: var(--navy); font-weight: 700; }
+.btn.ghost { background: transparent; color: #fff; border-color: #fff; }
+.btn.small { padding: 6px 10px; font-size: 13px; }
+.btn.danger { background: var(--err); border-color: var(--err); }
+.btn.outline { background: #fff; color: var(--navy); border-color: var(--navy); }
+
+/* الجداول: تمرير أفقي على الهاتف */
+.table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+table { width: 100%; border-collapse: collapse; font-size: 14px; min-width: 520px; }
+th, td { padding: 10px 8px; border-bottom: 1px solid var(--border); text-align: right; vertical-align: middle; }
+th { color: var(--navy); background: var(--gold-soft); font-weight: 700; }
+td select { min-width: 150px; }
+.ok-mark { color: var(--ok); font-weight: 700; }
+.no-mark { color: #c3cad6; }
+
+/* تنبيه مؤقت */
+.toast {
+  position: fixed; bottom: calc(16px + env(safe-area-inset-bottom, 0px)); left: 12px; right: 12px;
+  margin: 0 auto; max-width: 420px; padding: 12px 16px; border-radius: 10px;
+  background: var(--navy); color: #fff; text-align: center;
+  opacity: 0; transform: translateY(12px); transition: .25s; pointer-events: none; z-index: 10;
+}
+.toast.show { opacity: 1; transform: none; }
+.toast.ok { border-bottom: 3px solid var(--gold); }
+.toast.err { background: var(--err); }
+
+/* شاشة الدخول */
+.login-wrap { min-height: 100vh; display: grid; place-items: center; padding: 20px; background: linear-gradient(160deg, var(--navy) 0%, var(--navy-2) 100%); }
+.login-box { background: #fff; border-radius: 16px; padding: 24px; width: 100%; max-width: 380px; border-top: 4px solid var(--gold); }
+.login-box h1 { text-align: center; margin-top: 4px; }
+.login-box .sub { text-align: center; color: var(--muted); margin-bottom: 16px; }
+.msg-err { color: var(--err); font-size: 14px; margin: 0; }
+
+@media (min-width: 720px) {
+  main { padding: 20px; }
+  .top { flex-direction: row; align-items: center; justify-content: space-between; }
+}
