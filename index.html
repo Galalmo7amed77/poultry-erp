@@ -1,0 +1,1612 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#0b1f3a">
+  <title>نظام إدارة الدواجن</title>
+  <style>
+:root {
+  --navy: #0b1f3a;
+  --navy-2: #13305a;
+  --gold: #c9a227;
+  --gold-soft: #f6eccc;
+  --bg: #f4f6fa;
+  --card: #ffffff;
+  --text: #1c2433;
+  --muted: #6b7280;
+  --ok: #1e7b4a;
+  --err: #b42318;
+  --border: #dde3ee;
+  --radius: 12px;
+}
+
+* { box-sizing: border-box; }
+html, body { margin: 0; padding: 0; }
+body {
+  font-family: Tahoma, "Segoe UI", Arial, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  font-size: 16px;
+  line-height: 1.6;
+  -webkit-text-size-adjust: 100%;
+}
+h1 { font-size: 20px; margin: 12px 0; color: var(--navy); }
+h2 { font-size: 17px; margin: 0 0 12px; color: var(--navy); }
+small { color: var(--muted); }
+.loading { padding: 40px; text-align: center; color: var(--muted); }
+
+/* الشريط العلوي */
+.top {
+  background: var(--navy);
+  color: #fff;
+  padding: calc(10px + env(safe-area-inset-top, 0px)) 14px 10px;
+  display: flex; flex-direction: column; gap: 6px;
+  position: sticky; top: 0; z-index: 5;
+  border-bottom: 3px solid var(--gold);
+}
+.top .brand { font-weight: 700; color: var(--gold); font-size: 18px; }
+.top .me { display: flex; justify-content: space-between; align-items: center; gap: 8px; font-size: 14px; flex-wrap: wrap; }
+
+/* التنقل */
+.nav {
+  display: flex; gap: 6px; overflow-x: auto; padding: 8px 10px;
+  background: var(--navy-2); -webkit-overflow-scrolling: touch;
+}
+.nav a {
+  color: #dbe4f3; text-decoration: none; white-space: nowrap;
+  padding: 8px 12px; border-radius: 999px; font-size: 14px;
+}
+.nav a.active { background: var(--gold); color: var(--navy); font-weight: 700; }
+
+main { padding: 12px; max-width: 980px; margin: 0 auto; }
+
+.card {
+  background: var(--card); border: 1px solid var(--border);
+  border-radius: var(--radius); padding: 16px; margin-bottom: 14px;
+}
+.card.err { border-color: var(--err); color: var(--err); }
+.muted { color: var(--muted); font-size: 14px; }
+
+/* النماذج والأزرار */
+.form { display: grid; gap: 10px; }
+input, select {
+  width: 100%; padding: 12px; font-size: 16px;
+  border: 1px solid var(--border); border-radius: 10px; background: #fff; color: var(--text);
+  font-family: inherit;
+}
+input:focus, select:focus { outline: 2px solid var(--gold); border-color: var(--gold); }
+.btn {
+  padding: 11px 16px; border-radius: 10px; border: 1px solid var(--navy);
+  background: var(--navy); color: #fff; font-size: 15px; cursor: pointer; font-family: inherit;
+}
+.btn:disabled { opacity: .55; cursor: not-allowed; }
+.btn.gold { background: var(--gold); border-color: var(--gold); color: var(--navy); font-weight: 700; }
+.btn.ghost { background: transparent; color: #fff; border-color: #fff; }
+.btn.small { padding: 6px 10px; font-size: 13px; }
+.btn.danger { background: var(--err); border-color: var(--err); }
+.btn.outline { background: #fff; color: var(--navy); border-color: var(--navy); }
+.flex-row { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 8px; }
+.search-box { margin-bottom: 8px; background: #fff; }
+label { display: grid; gap: 4px; font-size: 14px; color: var(--muted); }
+label input[type="checkbox"] { width: auto; }
+section.card h2 + p.muted { margin-top: -4px; }
+
+/* الجداول: تمرير أفقي على الهاتف */
+.table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+table { width: 100%; border-collapse: collapse; font-size: 14px; min-width: 520px; }
+th, td { padding: 10px 8px; border-bottom: 1px solid var(--border); text-align: right; vertical-align: middle; }
+th { color: var(--navy); background: var(--gold-soft); font-weight: 700; }
+td select { min-width: 150px; }
+.ok-mark { color: var(--ok); font-weight: 700; }
+.no-mark { color: #c3cad6; }
+
+/* تنبيه مؤقت */
+.toast {
+  position: fixed; bottom: calc(16px + env(safe-area-inset-bottom, 0px)); left: 12px; right: 12px;
+  margin: 0 auto; max-width: 420px; padding: 12px 16px; border-radius: 10px;
+  background: var(--navy); color: #fff; text-align: center;
+  opacity: 0; transform: translateY(12px); transition: .25s; pointer-events: none; z-index: 10;
+}
+.toast.show { opacity: 1; transform: none; }
+.toast.ok { border-bottom: 3px solid var(--gold); }
+.toast.err { background: var(--err); }
+
+/* شاشة الدخول */
+.login-wrap { min-height: 100vh; display: grid; place-items: center; padding: 20px; background: linear-gradient(160deg, var(--navy) 0%, var(--navy-2) 100%); }
+.login-box { background: #fff; border-radius: 16px; padding: 24px; width: 100%; max-width: 380px; border-top: 4px solid var(--gold); }
+.login-box h1 { text-align: center; margin-top: 4px; }
+.login-box .sub { text-align: center; color: var(--muted); margin-bottom: 16px; }
+.msg-err { color: var(--err); font-size: 14px; margin: 0; }
+
+@media (min-width: 720px) {
+  main { padding: 20px; }
+  .top { flex-direction: row; align-items: center; justify-content: space-between; }
+}
+
+</style>
+</head>
+<body>
+  <div id="app"><div class="loading">جارٍ التحميل...</div></div>
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+<script>
+/* js/config.js */
+// إعدادات عامة فقط: رابط المشروع والمفتاح العام (publishable).
+// لا تضع هنا أي service_role أو مفتاح سري.
+window.APP_CONFIG = {
+  SUPABASE_URL: 'https://idczqhyuclhgkikagrvf.supabase.co',
+  SUPABASE_PUBLISHABLE_KEY: 'sb_publishable_OnDnKbiD74Q4XMXfqX7rUw_6eF2wasn',
+};
+
+</script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+<script>
+/* js/app.js */
+(function () {
+  'use strict';
+
+  var cfg = window.APP_CONFIG;
+  var sb = window.supabase.createClient(cfg.SUPABASE_URL, cfg.SUPABASE_PUBLISHABLE_KEY, {
+    auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true }
+  });
+
+  var app = document.getElementById('app');
+  var S = { session: null, profile: null, perms: new Set() };
+
+  // الشاشات. التحقق الفعلي يتم في RLS، وإخفاء الروابط هنا تجميلي فقط.
+  var ROUTES = [
+    { id: 'home', title: 'الرئيسية', perm: null },
+    { id: 'farms', title: 'المزارع والموردين', perm: 'ops.read', custom: true },
+    { id: 'loads', title: 'شراء الحمولات', perm: ['purchases.write', 'finance.read'], custom: true },
+    { id: 'transport', title: 'النقل والتريلات', perm: 'ops.read', custom: true },
+    { id: 'slaughter', title: 'المسلخ والتصنيف والإنتاج', perm: 'ops.read', custom: true },
+    { id: 'inventory', title: 'المخزون', perm: ['stock.read', 'sales.write'], custom: true },
+    { id: 'sales', title: 'المبيعات والعملاء', perm: ['sales.write', 'finance.read'], custom: true },
+    { id: 'payments', title: 'التحصيل', perm: ['payments.write', 'finance.read'], custom: true },
+    { id: 'returns', title: 'المرتجعات', perm: ['sales.write', 'finance.read'], custom: true },
+    { id: 'expenses', title: 'المصروفات', perm: ['expenses.write', 'finance.read'], custom: true },
+    { id: 'reports', title: 'التقارير المالية', perm: 'finance.read', custom: true },
+    { id: 'dashboard', title: 'لوحة التحكم', perm: 'finance.read', custom: true },
+    { id: 'users', title: 'المستخدمون', perm: 'users.manage' },
+    { id: 'roles', title: 'الأدوار والصلاحيات', perm: 'users.manage' },
+    { id: 'classes', title: 'تصنيفات الطيور', perm: 'master.write' }
+  ];
+
+  // ---------- أدوات مساعدة ----------
+  function esc(s) {
+    return String(s === null || s === undefined ? '' : s).replace(/[&<>"']/g, function (c) {
+      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+    });
+  }
+  function can(p) { return S.perms.has(p); }
+  function allowed(r) {
+    if (!r.perm) return true;
+    if (Array.isArray(r.perm)) return r.perm.some(function (p) { return can(p); });
+    return can(r.perm);
+  }
+  function currentRoute() {
+    var id = (location.hash || '#home').slice(1);
+    return ROUTES.find(function (r) { return r.id === id; }) || ROUTES[0];
+  }
+  var toastTimer = null;
+  function toast(msg, ok) {
+    var t = document.getElementById('toast');
+    t.textContent = msg;
+    t.className = 'toast show ' + (ok === false ? 'err' : 'ok');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(function () { t.className = 'toast'; }, 3500);
+  }
+  // رسالة خطأ من دالة Edge (تأتي في جسم الاستجابة)
+  function fnErrorMessage(error) {
+    if (error && error.context && typeof error.context.json === 'function') {
+      return error.context.json().then(function (b) { return b.error || error.message; })
+        .catch(function () { return error.message; });
+    }
+    return Promise.resolve(error ? error.message : 'خطأ غير معروف');
+  }
+
+  // ---------- تحميل الجلسة والملف والصلاحيات ----------
+  async function loadSession() {
+    S.perms = new Set();
+    S.profile = null;
+    var res = await sb.auth.getSession();
+    S.session = res.data.session;
+    if (!S.session) return false;
+
+    var prof = await sb.from('v_my_profile').select('id, full_name, role_code, role_name, is_active').maybeSingle();
+    if (prof.error) throw prof.error;
+    if (!prof.data || !prof.data.is_active) {
+      await sb.auth.signOut();
+      throw new Error('الحساب غير مسجّل أو غير مفعّل. تواصل مع مالك الشركة.');
+    }
+    S.profile = prof.data;
+
+    var rp = await sb.from('role_permissions').select('permission_code').eq('role_code', prof.data.role_code);
+    if (rp.error) throw rp.error;
+    S.perms = new Set(rp.data.map(function (x) { return x.permission_code; }));
+    return true;
+  }
+
+  // ---------- الشاشات ----------
+  function renderLogin(message) {
+    app.innerHTML =
+      '<div class="login-wrap"><div class="login-box">' +
+      '<h1>نظام إدارة الدواجن</h1>' +
+      '<div class="sub">تسجيل الدخول</div>' +
+      '<form id="loginForm" class="form">' +
+      '<input name="email" type="email" placeholder="البريد الإلكتروني" autocomplete="username" dir="ltr" required>' +
+      '<input name="password" type="password" placeholder="كلمة المرور" autocomplete="current-password" dir="ltr" required>' +
+      '<button class="btn gold" type="submit">دخول</button>' +
+      (message ? '<p class="msg-err">' + esc(message) + '</p>' : '') +
+      '</form></div></div>';
+  }
+
+  function renderShell(route) {
+    var nav = ROUTES.filter(function (r) { return allowed(r); })
+      .map(function (r) {
+        return '<a href="#' + r.id + '" class="' + (r.id === route.id ? 'active' : '') + '">' + esc(r.title) + '</a>';
+      }).join('');
+    app.innerHTML =
+      '<header class="top">' +
+      '<div class="brand">شركة تجارة الدواجن</div>' +
+      '<div class="me"><span>' + esc(S.profile.full_name) + ' · ' + esc(S.profile.role_name) + '</span>' +
+      '<button class="btn ghost small" data-action="logout">خروج</button></div>' +
+      '</header>' +
+      '<nav class="nav">' + nav + '</nav>' +
+      '<main><h1>' + esc(route.title) + '</h1><div id="content"><div class="loading">جارٍ التحميل...</div></div></main>';
+  }
+
+  async function render() {
+    try {
+      var ok = await loadSession();
+      if (!ok) return renderLogin();
+    } catch (e) {
+      return renderLogin(e.message);
+    }
+    var route = currentRoute();
+    renderShell(route);
+    var el = document.getElementById('content');
+    if (!allowed(route)) {
+      el.innerHTML = '<div class="card err">لا تملك صلاحية عرض هذه الشاشة.</div>';
+      return;
+    }
+    await renderContent(route, el);
+  }
+
+  async function renderContent(route, el) {
+    try {
+      if (route.custom) {
+        if (!window.OpsPages) throw new Error('وحدة الشاشات غير محمّلة');
+        await window.OpsPages.render(route.id, el);
+        return;
+      }
+      if (route.id === 'home') await pageHome(el);
+      if (route.id === 'users') await pageUsers(el);
+      if (route.id === 'roles') await pageRoles(el);
+      if (route.id === 'classes') await pageClasses(el);
+    } catch (e) {
+      el.innerHTML = '<div class="card err">حدث خطأ: ' + esc(e.message) + '</div>';
+    }
+  }
+
+  // واجهة مشتركة للوحدات الخارجية (مثل شاشات التشغيل)
+  window.PoultryCtx = {
+    sb: sb,
+    app: app,
+    esc: esc,
+    toast: toast,
+    can: can,
+    session: function () { return S.session; },
+    profile: function () { return S.profile; },
+    refresh: function () { return renderContent(currentRoute(), document.getElementById('content')); }
+  };
+
+  // الرئيسية: حالة المراحل وتغيير كلمة المرور الشخصية
+  async function pageHome(el) {
+    el.innerHTML =
+      '<section class="card"><h2>مرحباً ' + esc(S.profile.full_name) + '</h2>' +
+      '<p class="muted">دورك: ' + esc(S.profile.role_name) + '</p></section>' +
+      '<section class="card"><h2>تغيير كلمة المرور</h2>' +
+      '<form id="pwForm" class="form">' +
+      '<input name="pw" type="password" placeholder="كلمة المرور الجديدة (10 أحرف على الأقل)" minlength="10" autocomplete="new-password" dir="ltr" required>' +
+      '<input name="pw2" type="password" placeholder="تأكيد كلمة المرور" minlength="10" autocomplete="new-password" dir="ltr" required>' +
+      '<button class="btn gold" type="submit">حفظ</button></form></section>' +
+      '<section class="card"><h2>حالة النظام</h2>' +
+      '<p>المرحلة 1: قاعدة البيانات والصلاحيات (RLS) والحسابات والتقارير: <span class="ok-mark">مكتملة</span></p>' +
+      '<p>المرحلة 2: تسجيل الدخول وإدارة المستخدمين والصلاحيات: <span class="ok-mark">مكتملة</span></p>' +
+      '<p class="muted">المراحل التالية (المزارع والحمولات، المسلخ والإنتاج، المخزون والمبيعات، المصروفات والتقارير) لم تُبنَ بعد.</p>' +
+      '</section>';
+  }
+
+  // المستخدمون: إضافة، تغيير دور، تفعيل/تعطيل، تغيير كلمة المرور
+  async function pageUsers(el) {
+    var q1 = await sb.from('profiles').select('id, full_name, role_code, is_active, created_at').order('created_at');
+    var q2 = await sb.from('roles').select('code, name_ar').order('code');
+    if (q1.error) throw q1.error;
+    if (q2.error) throw q2.error;
+    var roles = q2.data;
+    var roleOpts = function (sel) {
+      return roles.map(function (r) {
+        return '<option value="' + esc(r.code) + '"' + (r.code === sel ? ' selected' : '') + '>' + esc(r.name_ar) + '</option>';
+      }).join('');
+    };
+    var rows = q1.data.map(function (u) {
+      var me = u.id === S.session.user.id;
+      return '<tr data-id="' + esc(u.id) + '">' +
+        '<td>' + esc(u.full_name) + (me ? ' <small>(أنت)</small>' : '') + '</td>' +
+        '<td><select data-action="set-role">' + roleOpts(u.role_code) + '</select></td>' +
+        '<td>' + (u.is_active ? '<span class="ok-mark">مفعّل</span>' : '<span class="muted">معطّل</span>') + '</td>' +
+        '<td><button class="btn small outline" data-action="toggle-user" data-active="' + (u.is_active ? 'true' : 'false') + '">' +
+          (u.is_active ? 'تعطيل' : 'تفعيل') + '</button> ' +
+        '<button class="btn small" data-action="reset-pw">كلمة المرور</button></td>' +
+        '</tr>';
+    }).join('');
+
+    el.innerHTML =
+      '<section class="card"><h2>إضافة مستخدم</h2>' +
+      '<form id="addUser" class="form">' +
+      '<input name="full_name" placeholder="الاسم الكامل" required>' +
+      '<input name="email" type="email" placeholder="البريد الإلكتروني" dir="ltr" required>' +
+      '<input name="password" type="password" placeholder="كلمة مرور مؤقتة (10 أحرف على الأقل)" minlength="10" dir="ltr" required>' +
+      '<select name="role_code">' + roleOpts('warehouse') + '</select>' +
+      '<button class="btn gold" type="submit">إنشاء المستخدم</button>' +
+      '<p class="muted">يُنشأ الحساب مفعّلاً مباشرة. أعطِ المستخدم كلمة المرور المؤقتة وليغيّرها من شاشة الرئيسية.</p>' +
+      '</form></section>' +
+      '<section class="card"><h2>المستخدمون (' + q1.data.length + ')</h2>' +
+      '<div class="table-wrap"><table><thead><tr><th>الاسم</th><th>الدور</th><th>الحالة</th><th>إجراءات</th></tr></thead>' +
+      '<tbody>' + rows + '</tbody></table></div></section>';
+  }
+
+  // الأدوار والصلاحيات: عرض فقط
+  async function pageRoles(el) {
+    var a = await sb.from('roles').select('code, name_ar').order('code');
+    var b = await sb.from('permissions').select('code, name_ar').order('code');
+    var c = await sb.from('role_permissions').select('role_code, permission_code');
+    if (a.error) throw a.error;
+    if (b.error) throw b.error;
+    if (c.error) throw c.error;
+    var has = {};
+    c.data.forEach(function (x) { has[x.role_code + '|' + x.permission_code] = true; });
+
+    var head = '<th>الصلاحية</th>' + a.data.map(function (r) { return '<th>' + esc(r.name_ar) + '</th>'; }).join('');
+    var body = b.data.map(function (p) {
+      return '<tr><td>' + esc(p.name_ar) + '<br><small dir="ltr">' + esc(p.code) + '</small></td>' +
+        a.data.map(function (r) {
+          return '<td class="' + (has[r.code + '|' + p.code] ? 'ok-mark' : 'no-mark') + '">' +
+            (has[r.code + '|' + p.code] ? '✓' : '—') + '</td>';
+        }).join('') + '</tr>';
+    }).join('');
+
+    el.innerHTML =
+      '<section class="card"><p class="muted">مصفوفة الصلاحيات الحالية. التعديل يتم من قاعدة البيانات بإشراف المطوّر، وليس من الواجهة.</p>' +
+      '<div class="table-wrap"><table><thead><tr>' + head + '</tr></thead><tbody>' + body + '</tbody></table></div></section>';
+  }
+
+  // تصنيفات الطيور: قابل للبيع / غير قابل / غير محدد
+  async function pageClasses(el) {
+    var q = await sb.from('bird_classes').select('code, name_ar, is_sellable, notes').order('code');
+    if (q.error) throw q.error;
+    var val = function (v) { return v === true ? 'true' : v === false ? 'false' : 'null'; };
+    var rows = q.data.map(function (c) {
+      return '<tr><td>' + esc(c.name_ar) + '<br><small dir="ltr">' + esc(c.code) + '</small></td>' +
+        '<td><select data-action="set-sellable" data-code="' + esc(c.code) + '">' +
+          '<option value="true"' + (val(c.is_sellable) === 'true' ? ' selected' : '') + '>قابل للبيع</option>' +
+          '<option value="false"' + (val(c.is_sellable) === 'false' ? ' selected' : '') + '>غير قابل للبيع</option>' +
+          '<option value="null"' + (val(c.is_sellable) === 'null' ? ' selected' : '') + '>غير محدد</option>' +
+        '</select></td>' +
+        '<td><small>' + esc(c.notes || '') + '</small></td></tr>';
+    }).join('');
+    el.innerHTML =
+      '<section class="card"><p class="muted">القابل للبيع يدخل المخزون المتاح للبيع. «غير محدد» لا يدخل المخزون المتاح حتى يُعتمد. التغيير يسري على التشغيلات التي تُرحَّل بعد التعديل.</p>' +
+      '<div class="table-wrap"><table><thead><tr><th>التصنيف</th><th>صلاحية البيع</th><th>ملاحظة</th></tr></thead><tbody>' + rows + '</tbody></table></div></section>';
+  }
+
+  // ---------- الأحداث (مفوّضة من الحاوية الرئيسية) ----------
+  app.addEventListener('click', async function (e) {
+    var btn = e.target.closest('[data-action]');
+    if (!btn) return;
+    var action = btn.dataset.action;
+    if (action === 'logout') { await sb.auth.signOut(); return; }
+
+    var row = btn.closest('[data-id]');
+    var id = row ? row.dataset.id : null;
+
+    if (action === 'toggle-user') {
+      var active = btn.dataset.active === 'true';
+      if (id === S.session.user.id && active &&
+          !confirm('ستفقد وصولك إلى النظام بعد التعطيل. هل تريد المتابعة؟')) return;
+      btn.disabled = true;
+      var up = await sb.from('profiles').update({ is_active: !active }).eq('id', id).select('id');
+      btn.disabled = false;
+      if (up.error) return toast(up.error.message, false);
+      if (!up.data || up.data.length === 0) return toast('لا تملك صلاحية تعديل هذا المستخدم', false);
+      toast('تم تحديث الحالة');
+      return render();
+    }
+
+    if (action === 'reset-pw') {
+      var pw = prompt('كلمة المرور الجديدة المؤقتة (10 أحرف على الأقل):');
+      if (pw === null) return;
+      if (pw.length < 10) return toast('كلمة المرور قصيرة', false);
+      var res = await sb.functions.invoke('admin-users', { body: { action: 'reset_password', user_id: id, password: pw } });
+      if (res.error) return toast(await fnErrorMessage(res.error), false);
+      if (res.data && res.data.error) return toast(res.data.error, false);
+      return toast('تم تغيير كلمة المرور');
+    }
+  });
+
+  app.addEventListener('change', async function (e) {
+    var el = e.target;
+    var action = el.dataset.action;
+
+    if (action === 'set-role') {
+      var id = el.closest('[data-id]').dataset.id;
+      var up = await sb.from('profiles').update({ role_code: el.value }).eq('id', id).select('id');
+      if (up.error) { toast(up.error.message, false); return render(); }
+      if (!up.data || up.data.length === 0) { toast('لا تملك صلاحية تعديل هذا المستخدم', false); return render(); }
+      toast('تم تغيير الدور');
+      return render();
+    }
+
+    if (action === 'set-sellable') {
+      var v = el.value === 'true' ? true : el.value === 'false' ? false : null;
+      var code = el.dataset.code;
+      var res = await sb.from('bird_classes').update({ is_sellable: v }).eq('code', code).select('code');
+      if (res.error) { toast(res.error.message, false); return render(); }
+      if (!res.data || res.data.length === 0) { toast('لا تملك صلاحية تغيير هذا الإعداد', false); return render(); }
+      toast('تم حفظ صلاحية البيع');
+      return render();
+    }
+  });
+
+  app.addEventListener('submit', async function (e) {
+    var f = e.target;
+    if (f.id === 'loginForm') {
+      e.preventDefault();
+      var btn = f.querySelector('button');
+      btn.disabled = true;
+      var r = await sb.auth.signInWithPassword({
+        email: f.email.value.trim(), password: f.password.value
+      });
+      btn.disabled = false;
+      if (r.error) return renderLogin('البريد الإلكتروني أو كلمة المرور غير صحيحة');
+      return render();
+    }
+
+    if (f.id === 'pwForm') {
+      e.preventDefault();
+      if (f.pw.value !== f.pw2.value) return toast('كلمتا المرور غير متطابقتين', false);
+      var up = await sb.auth.updateUser({ password: f.pw.value });
+      if (up.error) return toast(up.error.message, false);
+      f.reset();
+      return toast('تم تغيير كلمة المرور');
+    }
+
+    if (f.id === 'addUser') {
+      e.preventDefault();
+      var b = f.querySelector('button');
+      b.disabled = true;
+      var res = await sb.functions.invoke('admin-users', {
+        body: {
+          action: 'create',
+          full_name: f.full_name.value,
+          email: f.email.value,
+          password: f.password.value,
+          role_code: f.role_code.value
+        }
+      });
+      b.disabled = false;
+      if (res.error) return toast(await fnErrorMessage(res.error), false);
+      if (res.data && res.data.error) return toast(res.data.error, false);
+      toast('تم إنشاء المستخدم');
+      return render();
+    }
+  });
+
+  // ---------- دورة الجلسة ----------
+  sb.auth.onAuthStateChange(function (event) {
+    if (event === 'INITIAL_SESSION' || event === 'SIGNED_IN' || event === 'SIGNED_OUT') {
+      render();
+    }
+  });
+  window.addEventListener('hashchange', function () { render(); });
+
+  // بحث فوري فوق كل جدول في الشاشات: يصفّي الصفوف حسب النص
+  var searchObserver = new MutationObserver(function () {
+    document.querySelectorAll('.table-wrap').forEach(function (wrap) {
+      var prev = wrap.previousElementSibling;
+      if (prev && prev.classList && prev.classList.contains('search-box')) return;
+      var box = document.createElement('input');
+      box.type = 'search';
+      box.className = 'search-box';
+      box.placeholder = 'بحث في هذه القائمة...';
+      box.addEventListener('input', function () {
+        var q = box.value.trim().toLowerCase();
+        wrap.querySelectorAll('tbody tr').forEach(function (tr) {
+          tr.style.display = (!q || tr.textContent.toLowerCase().indexOf(q) !== -1) ? '' : 'none';
+        });
+      });
+      wrap.parentNode.insertBefore(box, wrap);
+    });
+  });
+  searchObserver.observe(app, { childList: true, subtree: true });
+})();
+
+</script>
+<script>
+/* js/ops.js */
+(function () {
+  'use strict';
+
+  // شاشات التشغيل: المزارع، شراء الحمولات، النقل، المسلخ والتصنيف والإنتاج.
+  // كل عملية كتابة إما جدول محمي بـ RLS، أو دالة مفحوصة في قاعدة البيانات.
+  // الواجهة لا تُعتبر حماية: التحقق الفعلي في قاعدة البيانات.
+
+  var P = {};
+  var st = { editFarm: null, editLoad: null, editTruck: null, batchId: null, runId: null };
+
+  function C() { return window.PoultryCtx; }
+  function esc(s) { return C().esc(s); }
+  function uid() {
+    if (window.crypto && window.crypto.randomUUID) return window.crypto.randomUUID();
+    return 'id-' + Date.now() + '-' + Math.random().toString(16).slice(2);
+  }
+  function code(prefix) {
+    return prefix + '-' + new Date().toISOString().replace(/[-:TZ.]/g, '').slice(0, 14) + '-' + Math.random().toString(36).slice(2, 6).toUpperCase();
+  }
+  function num(v) { var n = Number(v); return isFinite(n) ? n : 0; }
+  function isDup(e) { return !!(e && (e.code === '23505')); }
+  function fail(e) { throw (e instanceof Error ? e : new Error(e && e.message ? e.message : 'خطأ غير معروف')); }
+  function must(res) { if (res.error) fail(res.error); return res.data; }
+  function sel(list, val, label, selected) {
+    return list.map(function (x) {
+      return '<option value="' + esc(x[val]) + '"' + (String(x[val]) === String(selected) ? ' selected' : '') + '>' + esc(label(x)) + '</option>';
+    }).join('');
+  }
+  function sessionUser() { var s = C().session(); return s && s.user ? s.user.id : null; }
+  function canWriteFarms() { return C().can('master.write') || C().can('purchases.write'); }
+
+  // ---------- المزارع والموردين ----------
+  P.farms = async function (el) {
+    var q = must(await C().sb.from('farms').select('id,code,name,phone,region').order('name'));
+    var w = canWriteFarms();
+    var ed = st.editFarm ? q.find(function (f) { return f.id === st.editFarm; }) : null;
+    var form = '';
+    if (w) {
+      form = '<section class="card"><h2>' + (ed ? 'تعديل مزرعة' : 'إضافة مزرعة أو مورد') + '</h2>' +
+        '<form class="form" data-ops-form="farm">' +
+        '<input type="hidden" name="id" value="' + (ed ? esc(ed.id) : '') + '">' +
+        '<input name="name" placeholder="اسم المزرعة أو المورد" required value="' + (ed ? esc(ed.name) : '') + '">' +
+        '<input name="phone" placeholder="الهاتف" dir="ltr" value="' + (ed ? esc(ed.phone || '') : '') + '">' +
+        '<input name="region" placeholder="المنطقة" value="' + (ed ? esc(ed.region || '') : '') + '">' +
+        '<button class="btn gold" type="submit">حفظ</button>' +
+        (ed ? ' <button type="button" class="btn outline" data-ops="farm-cancel">إلغاء التعديل</button>' : '') +
+        '</form></section>';
+    }
+    var rows = q.map(function (f) {
+      return '<tr><td>' + esc(f.name) + '<br><small dir="ltr">' + esc(f.code) + '</small></td><td dir="ltr">' + esc(f.phone || '') + '</td><td>' + esc(f.region || '') + '</td>' +
+        (w ? '<td><button class="btn small outline" data-ops="farm-edit" data-id="' + esc(f.id) + '">تعديل</button> ' +
+             '<button class="btn small danger" data-ops="farm-del" data-id="' + esc(f.id) + '">حذف</button></td>' : '<td></td>') + '</tr>';
+    }).join('');
+    el.innerHTML = form +
+      '<section class="card"><h2>المزارع والموردون (' + q.length + ')</h2><div class="table-wrap"><table>' +
+      '<thead><tr><th>الاسم</th><th>الهاتف</th><th>المنطقة</th><th>إجراءات</th></tr></thead><tbody>' +
+      (rows || '<tr><td colspan="4">لا توجد مزارع بعد</td></tr>') + '</tbody></table></div></section>';
+  };
+
+  async function farmSave(f) {
+    var id = f.get('id');
+    var data = { name: String(f.get('name') || '').trim(), phone: String(f.get('phone') || '').trim() || null, region: String(f.get('region') || '').trim() || null };
+    if (!data.name) fail('اسم المزرعة مطلوب');
+    if (id) {
+      var up = await C().sb.from('farms').update(data).eq('id', id).select('id');
+      if (up.error) fail(up.error);
+      if (!up.data || !up.data.length) fail('لا تملك صلاحية تعديل هذه المزرعة');
+    } else {
+      data.id = uid(); data.code = code('F');
+      var r = await C().sb.from('farms').insert(data);
+      if (r.error && !isDup(r.error)) fail(r.error);
+    }
+    st.editFarm = null;
+    C().toast('تم حفظ المزرعة');
+  }
+
+  async function farmDelete(id) {
+    if (!confirm('حذف هذه المزرعة؟')) return;
+    var r = await C().sb.from('farms').delete().eq('id', id).select('id');
+    if (r.error) fail(r.error.message.indexOf('violates') >= 0 ? 'لا يمكن حذف مزرعة لها حمولات مسجلة' : r.error);
+    if (!r.data || !r.data.length) fail('لا تملك صلاحية حذف هذه المزرعة');
+    C().toast('تم حذف المزرعة');
+  }
+
+  // ---------- شراء الحمولات ----------
+  P.loads = async function (el) {
+    var farms = must(await C().sb.from('farms').select('id,name').order('name'));
+    var loads = must(await C().sb.from('purchase_loads')
+      .select('id,load_no,purchase_date,pricing_method,birds_count,gross_weight_kg,unit_price,amount_sar,status,notes,farm_id,farms(name)')
+      .order('purchase_date', { ascending: false }));
+    var bal = {};
+    var b = await C().sb.from('v_supplier_balances').select('load_id,balance_sar');
+    if (!b.error) b.data.forEach(function (x) { bal[x.load_id] = x.balance_sar; });
+    var canW = C().can('purchases.write');
+    var ed = st.editLoad ? loads.find(function (l) { return l.id === st.editLoad; }) : null;
+    var form = '';
+    if (canW) {
+      if (!farms.length) form = '<section class="card"><p>أضف مزرعة أولاً من شاشة المزارع.</p></section>';
+      else form = '<section class="card"><h2>' + (ed ? 'تعديل حمولة مفتوحة' : 'تسجيل شراء حمولة') + '</h2>' +
+        '<form class="form" data-ops-form="load">' +
+        '<input type="hidden" name="id" value="' + (ed ? esc(ed.id) : uid()) + '">' +
+        '<select name="farm_id" required>' + sel(farms, 'id', function (f) { return f.name; }, ed ? ed.farm_id : '') + '</select>' +
+        '<label>تاريخ الشراء<input type="date" name="purchase_date" required value="' + (ed ? esc(ed.purchase_date) : new Date().toISOString().slice(0, 10)) + '"></label>' +
+        '<select name="pricing_method"><option value="piece"' + (!ed || ed.pricing_method === 'piece' ? ' selected' : '') + '>بسعر الحبة</option>' +
+        '<option value="kg"' + (ed && ed.pricing_method === 'kg' ? ' selected' : '') + '>بسعر الكيلو</option></select>' +
+        '<input type="number" name="birds_count" min="1" step="1" placeholder="عدد الدواجن" required value="' + (ed ? ed.birds_count : '') + '">' +
+        '<input type="number" name="gross_weight_kg" min="0.001" step="0.001" placeholder="الوزن الإجمالي (كجم)" required value="' + (ed ? ed.gross_weight_kg : '') + '">' +
+        '<input type="number" name="unit_price" min="0" step="0.0001" placeholder="سعر الكيلو أو الحبة (ريال)" required value="' + (ed ? ed.unit_price : '') + '">' +
+        '<input name="notes" placeholder="ملاحظات" value="' + (ed ? esc(ed.notes || '') : '') + '">' +
+        '<p class="muted">العملة: ريال سعودي. الإجمالي يحسبه النظام تلقائياً عند الحفظ.</p>' +
+        '<button class="btn gold" type="submit">حفظ الحمولة</button>' +
+        (ed ? ' <button type="button" class="btn outline" data-ops="load-cancel">إلغاء التعديل</button>' : '') +
+        '</form></section>';
+    }
+    var rows = loads.map(function (l) {
+      var isOpen = l.status === 'open';
+      return '<tr><td>' + esc(l.load_no) + '<br><small>' + esc(l.purchase_date) + ' · ' + esc(l.farms ? l.farms.name : '') + '</small></td>' +
+        '<td>' + esc(l.birds_count) + ' طير · ' + esc(l.gross_weight_kg) + ' كجم</td>' +
+        '<td>' + esc(l.pricing_method === 'kg' ? 'كيلو' : 'حبة') + ' × ' + esc(l.unit_price) + '</td>' +
+        '<td>' + esc(l.amount_sar) + ' ر.س</td>' +
+        '<td>' + (bal[l.id] !== undefined ? esc(bal[l.id]) + ' ر.س' : '—') + '</td>' +
+        '<td>' + (l.status === 'open' ? 'مفتوحة' : esc(l.status)) + '</td>' +
+        '<td>' + (canW && isOpen ? '<button class="btn small outline" data-ops="load-edit" data-id="' + esc(l.id) + '">تعديل</button> ' +
+             '<button class="btn small danger" data-ops="load-del" data-id="' + esc(l.id) + '">حذف</button>' : '') + '</td></tr>';
+    }).join('');
+    el.innerHTML = form +
+      '<section class="card"><h2>الحمولات (' + loads.length + ')</h2><div class="table-wrap"><table>' +
+      '<thead><tr><th>الحمولة</th><th>الطيور والوزن</th><th>التسعير</th><th>المبلغ</th><th>المتبقي للمورد</th><th>الحالة</th><th></th></tr></thead>' +
+      '<tbody>' + (rows || '<tr><td colspan="7">لا توجد حمولات بعد</td></tr>') + '</tbody></table></div></section>';
+  };
+
+  async function loadSave(f) {
+    var id = String(f.get('id'));
+    var data = {
+      farm_id: f.get('farm_id'), purchase_date: f.get('purchase_date'),
+      pricing_method: f.get('pricing_method'), birds_count: parseInt(f.get('birds_count'), 10),
+      gross_weight_kg: num(f.get('gross_weight_kg')), unit_price: num(f.get('unit_price')),
+      notes: String(f.get('notes') || '').trim() || null
+    };
+    if (!(data.birds_count > 0)) fail('عدد الدواجن يجب أن يكون أكبر من صفر');
+    if (!(data.gross_weight_kg > 0)) fail('الوزن يجب أن يكون أكبر من صفر');
+    if (st.editLoad) {
+      var r = await C().sb.from('purchase_loads').update(data).eq('id', st.editLoad).select('id');
+      if (r.error) fail(r.error);
+      if (!r.data || !r.data.length) fail('لا تملك صلاحية تعديل هذه الحمولة');
+    } else {
+      data.id = id; data.load_no = code('L'); data.client_request_id = id;
+      var ins = await C().sb.from('purchase_loads').insert(data);
+      if (ins.error && !isDup(ins.error)) fail(ins.error);
+    }
+    st.editLoad = null;
+    C().toast('تم حفظ الحمولة');
+  }
+
+  async function loadDelete(id) {
+    if (!confirm('حذف هذه الحمولة المفتوحة؟')) return;
+    var r = await C().sb.from('purchase_loads').delete().eq('id', id).select('id');
+    if (r.error) fail(r.error.message.indexOf('violates') >= 0 ? 'لا يمكن حذف حمولة لها نقل أو تكاليف مسجلة' : r.error);
+    if (!r.data || !r.data.length) fail('لا يمكن حذف هذه الحمولة (مغلقة أو مرتبطة بدفعة مسلخ)');
+    C().toast('تم حذف الحمولة');
+  }
+
+  // ---------- النقل: التريلات والسائقون والطيور الواصلة ----------
+  P.transport = async function (el) {
+    var trucks = must(await C().sb.from('trucks').select('id,plate,model').order('plate'));
+    var drivers = must(await C().sb.from('drivers').select('id,name,phone').order('name'));
+    var loads = must(await C().sb.rpc('ops_loads'));
+    var transports = must(await C().sb.from('load_transports')
+      .select('id,load_id,truck_id,driver_id,departure_at,birds_loaded,birds_arrived,transit_mortality,notes')
+      .order('departure_at', { ascending: false }));
+    var lname = {}; loads.forEach(function (l) { lname[l.load_id] = l.load_no; });
+    var tname = {}; trucks.forEach(function (t) { tname[t.id] = t.plate; });
+    var dname = {}; drivers.forEach(function (d) { dname[d.id] = d.name; });
+    var canW = C().can('purchases.write');
+    var canFuel = canW;
+    var openLoads = loads.filter(function (l) { return l.load_status === 'open'; });
+    var ed = st.editTruck ? transports.find(function (t) { return t.id === st.editTruck; }) : null;
+
+    var forms = '';
+    if (canW) {
+      forms = '<section class="card"><h2>' + (ed ? 'تعديل نقلة' : 'تسجيل نقلة (تريلة)') + '</h2>' +
+        '<form class="form" data-ops-form="transport">' +
+        '<input type="hidden" name="id" value="' + (ed ? esc(ed.id) : uid()) + '">' +
+        '<select name="load_id" required ' + (ed ? 'disabled' : '') + '>' + sel(ed ? loads : openLoads, 'load_id', function (l) { return l.load_no; }, ed ? ed.load_id : '') + '</select>' +
+        '<select name="truck_id" required>' + sel(trucks, 'id', function (t) { return t.plate; }, ed ? ed.truck_id : '') + '</select>' +
+        '<select name="driver_id" required>' + sel(drivers, 'id', function (d) { return d.name; }, ed ? ed.driver_id : '') + '</select>' +
+        '<label>وقت الانطلاق<input type="datetime-local" name="departure_at" value="' + (ed ? esc(ed.departure_at.slice(0, 16)) : new Date().toISOString().slice(0, 16)) + '"></label>' +
+        '<input type="number" name="birds_loaded" min="1" step="1" required placeholder="عدد الطيور عند التحميل" value="' + (ed ? ed.birds_loaded : '') + '">' +
+        '<input type="number" name="birds_arrived" min="0" step="1" required placeholder="عدد الطيور عند الوصول" value="' + (ed ? ed.birds_arrived : '') + '">' +
+        (canFuel && !ed ? '<input type="number" name="fuel_sar" min="0" step="0.01" placeholder="تكلفة الوقود والنقل (ريال، اختياري)">' : '') +
+        '<input name="notes" placeholder="ملاحظات" value="' + (ed ? esc(ed.notes || '') : '') + '">' +
+        '<button class="btn gold" type="submit">حفظ النقلة</button>' +
+        (ed ? ' <button type="button" class="btn outline" data-ops="tr-cancel">إلغاء التعديل</button>' : '') +
+        '</form></section>' +
+        '<section class="card"><h2>التريلات والسائقون</h2>' +
+        '<form class="form" data-ops-form="truck"><input name="plate" placeholder="رقم التريلة" required dir="ltr"><input name="model" placeholder="الموديل (اختياري)">' +
+        '<button class="btn outline" type="submit">إضافة تريلة</button></form>' +
+        '<form class="form" data-ops-form="driver" style="margin-top:12px"><input name="name" placeholder="اسم السائق" required><input name="phone" placeholder="الهاتف" dir="ltr">' +
+        '<button class="btn outline" type="submit">إضافة سائق</button></form>' +
+        '<div class="table-wrap" style="margin-top:12px"><table><thead><tr><th>التريلة</th><th>السائق</th><th></th></tr></thead><tbody>' +
+        trucks.map(function (t) { return '<tr><td dir="ltr">' + esc(t.plate) + '</td><td colspan="1"></td><td><button class="btn small danger" data-ops="truck-del" data-id="' + esc(t.id) + '">حذف</button></td></tr>'; }).join('') +
+        drivers.map(function (d) { return '<tr><td></td><td>' + esc(d.name) + '</td><td><button class="btn small danger" data-ops="driver-del" data-id="' + esc(d.id) + '">حذف</button></td></tr>'; }).join('') +
+        '</tbody></table></div></section>';
+    }
+    var rows = transports.map(function (t) {
+      var pct = t.birds_loaded ? ((t.birds_loaded - t.birds_arrived) * 100 / t.birds_loaded).toFixed(2) : '0';
+      return '<tr><td>' + esc(lname[t.load_id] || '—') + '<br><small>' + esc(tname[t.truck_id] || '') + ' · ' + esc(dname[t.driver_id] || '') + '</small></td>' +
+        '<td>' + esc(t.birds_loaded) + ' ← ' + esc(t.birds_arrived) + '</td>' +
+        '<td>' + esc(t.transit_mortality) + ' طير (' + pct + '%)</td>' +
+        '<td>' + (canW ? '<button class="btn small outline" data-ops="tr-edit" data-id="' + esc(t.id) + '">تعديل</button> ' +
+             '<button class="btn small danger" data-ops="tr-del" data-id="' + esc(t.id) + '">حذف</button>' : '') + '</td></tr>';
+    }).join('');
+    el.innerHTML = forms +
+      '<section class="card"><h2>النقلات (' + transports.length + ')</h2><div class="table-wrap"><table>' +
+      '<thead><tr><th>الحمولة والتريلة</th><th>التحميل ← الوصول</th><th>النفوق في النقل</th><th></th></tr></thead>' +
+      '<tbody>' + (rows || '<tr><td colspan="4">لا توجد نقلات بعد</td></tr>') + '</tbody></table></div></section>';
+  };
+
+  async function transportSave(f) {
+    var id = String(f.get('id'));
+    if (st.editTruck) {
+      var up = { truck_id: f.get('truck_id'), driver_id: f.get('driver_id'), birds_loaded: parseInt(f.get('birds_loaded'), 10),
+                 birds_arrived: parseInt(f.get('birds_arrived'), 10), notes: String(f.get('notes') || '').trim() || null };
+      if (up.birds_arrived > up.birds_loaded) fail('الطيور الواصلة أكبر من المحملة');
+      var r = await C().sb.from('load_transports').update(up).eq('id', st.editTruck).select('id');
+      if (r.error) fail(r.error);
+      if (!r.data || !r.data.length) fail('لا تملك صلاحية تعديل هذه النقلة');
+      st.editTruck = null; C().toast('تم تحديث النقلة'); return;
+    }
+    var loaded = parseInt(f.get('birds_loaded'), 10), arrived = parseInt(f.get('birds_arrived'), 10);
+    if (!(loaded > 0)) fail('عدد الطيور عند التحميل يجب أن يكون أكبر من صفر');
+    if (arrived < 0 || arrived > loaded) fail('عدد الطيور الواصلة يجب أن يكون بين صفر والمحملة');
+    var row = {
+      id: id, load_id: f.get('load_id'), truck_id: f.get('truck_id'), driver_id: f.get('driver_id'),
+      departure_at: f.get('departure_at') ? new Date(f.get('departure_at')).toISOString() : new Date().toISOString(),
+      birds_loaded: loaded, birds_arrived: arrived, notes: String(f.get('notes') || '').trim() || null
+    };
+    var ins = await C().sb.from('load_transports').insert(row);
+    if (ins.error && !isDup(ins.error)) fail(ins.error);
+    var fuel = num(f.get('fuel_sar'));
+    if (fuel > 0) {
+      var ex = await C().sb.from('expenses').insert({
+        id: uid(), category_code: 'fuel_transport', load_id: row.load_id, amount_original: fuel,
+        currency_code: 'SAR', fx_rate: 1, description: 'وقود ونقل - نقلة ' + id.slice(0, 8),
+        client_request_id: id + '-fuel', created_by: sessionUser()
+      });
+      if (ex.error && !isDup(ex.error)) fail(ex.error);
+    }
+    C().toast('تم حفظ النقلة');
+  }
+
+  async function transportDelete(id) {
+    if (!confirm('حذف هذه النقلة؟ تكلفة الوقود المسجلة لا تُحذف تلقائياً.')) return;
+    var r = await C().sb.from('load_transports').delete().eq('id', id).select('id');
+    if (r.error) fail(r.error);
+    if (!r.data || !r.data.length) fail('لا تملك صلاحية حذف هذه النقلة');
+    C().toast('تم حذف النقلة');
+  }
+
+  // ---------- المسلخ والتصنيف والإنتاج ----------
+  P.slaughter = async function (el) {
+    var batches = must(await C().sb.rpc('ops_batches'));
+    var loads = must(await C().sb.rpc('ops_loads'));
+    var houses = must(await C().sb.from('slaughterhouses').select('id,name').order('name'));
+    var products = must(await C().sb.from('product_types').select('id,code,name_ar,is_whole_bird,allocation_factor').eq('is_active', true).order('code'));
+    var classes = must(await C().sb.from('bird_classes').select('code,name_ar,is_sellable').order('code'));
+    var hasBatch = {}; batches.forEach(function (b) { hasBatch[b.load_no] = true; });
+    var freeLoads = loads.filter(function (l) { return l.load_status === 'open' && !hasBatch[l.load_no]; });
+    st.classes = classes;
+    var canP = C().can('production.write');
+    var canCost = C().can('expenses.write');
+    var canSeeCost = C().can('finance.read');
+    var canMaster = C().can('master.write');
+
+    var html = '';
+    if (canP || canMaster) {
+      html += '<section class="card"><h2>إضافة مسلخ خارجي</h2>' +
+        '<form class="form" data-ops-form="slaughterhouse">' +
+        '<input name="name" placeholder="اسم المسلخ" required>' +
+        '<input name="phone" placeholder="الهاتف" dir="ltr">' +
+        '<button class="btn outline" type="submit">حفظ المسلخ</button></form>' +
+        (houses.length ? '<p class="muted">المسالخ المسجلة: ' + houses.map(function (h) { return esc(h.name); }).join('، ') + '</p>' : '<p class="muted">لا يوجد مسلخ مسجل بعد. أضف مسلخاً قبل استلام أي دفعة.</p>') +
+        '</section>';
+    }
+    if (canP) {
+      html += '<section class="card"><h2>استلام دفعة من المسلخ</h2>' +
+        (freeLoads.length && houses.length ?
+          '<form class="form" data-ops-form="batch-new">' +
+          '<select name="load_id" required>' + sel(freeLoads, 'load_id', function (l) { return l.load_no + ' (' + l.birds_count + ' طير)'; }, '') + '</select>' +
+          '<select name="slaughterhouse_id" required>' + sel(houses, 'id', function (h) { return h.name; }, '') + '</select>' +
+          '<label>تاريخ الذبح<input type="date" name="slaughter_date" value="' + new Date().toISOString().slice(0, 10) + '"></label>' +
+          '<input type="number" name="received" min="0" step="1" required placeholder="المستلم من النقل">' +
+          '<input type="number" name="slaughtered" min="0" step="1" required placeholder="المذبوح الجيد">' +
+          '<input type="number" name="dead" min="0" step="1" required placeholder="النافق في المسلخ">' +
+          '<input type="number" name="rejected" min="0" step="1" required placeholder="المرفوض">' +
+          '<button class="btn gold" type="submit">تسجيل الاستلام</button></form>'
+          : '<p class="muted">' + (!houses.length ? 'أضف مسلخاً أولاً.' : 'لا توجد حمولات مفتوحة بلا دفعة. سجّل النقل أولاً.') + '</p>') +
+        '</section>';
+    }
+
+    html += '<section class="card"><h2>الدفعات (' + batches.length + ')</h2><div class="table-wrap"><table>' +
+      '<thead><tr><th>الحمولة</th><th>المسلخ</th><th>المستلم</th><th>المذبوح</th><th>النافق/المرفوض</th><th>الحالة</th><th></th></tr></thead><tbody>' +
+      (batches.map(function (b) {
+        return '<tr><td>' + esc(b.load_no) + '<br><small>' + esc(b.slaughter_date) + '</small></td><td>' + esc(b.slaughterhouse_name) + '</td>' +
+          '<td>' + esc(b.received_birds) + '</td><td>' + esc(b.slaughtered_birds) + '</td>' +
+          '<td>' + esc(b.dead_at_slaughter) + ' / ' + esc(b.rejected_birds) + '</td>' +
+          '<td>' + (b.batch_status === 'closed' ? 'مغلقة' : 'مفتوحة') + '</td>' +
+          '<td><button class="btn small outline" data-ops="batch-open" data-id="' + esc(b.batch_id) + '">فتح</button></td></tr>';
+      }).join('') || '<tr><td colspan="7">لا توجد دفعات بعد</td></tr>') +
+      '</tbody></table></div></section>';
+
+    if (st.batchId) {
+      var b = batches.find(function (x) { return x.batch_id === st.batchId; });
+      if (!b) { st.batchId = null; } else {
+        html += await batchDetail(b, classes, houses, products, canP, canCost, canSeeCost);
+      }
+    }
+
+    if (canMaster) {
+      html += '<section class="card"><h2>المنتجات (الكاملة والجانبية)</h2>' +
+        '<form class="form" data-ops-form="product">' +
+        '<input name="code" placeholder="رمز المنتج (مثال: LIVER)" required dir="ltr">' +
+        '<input name="name_ar" placeholder="اسم المنتج" required>' +
+        '<label><input type="checkbox" name="is_whole_bird" style="width:auto"> طير كامل (وليس منتجاً جانبياً)</label>' +
+        '<input type="number" name="allocation_factor" min="0.0001" step="0.0001" value="1" placeholder="معامل توزيع التكلفة">' +
+        '<button class="btn outline" type="submit">إضافة منتج</button></form>' +
+        '<div class="table-wrap" style="margin-top:12px"><table><tbody>' +
+        products.map(function (p) { return '<tr><td>' + esc(p.name_ar) + '<br><small dir="ltr">' + esc(p.code) + '</small></td><td>' + (p.is_whole_bird ? 'طير كامل' : 'منتج جانبي') + '</td><td>معامل ' + esc(p.allocation_factor) + '</td></tr>'; }).join('') +
+        '</tbody></table></div></section>';
+    }
+    el.innerHTML = html;
+  };
+
+  async function batchDetail(b, classes, houses, products, canP, canCost, canSeeCost) {
+    var closed = b.batch_status === 'closed';
+    var grading = must(await C().sb.rpc('ops_grading')).filter(function (g) { return g.batch_id === b.batch_id; });
+    var gTotal = grading.reduce(function (s, g) { return s + num(g.bird_count); }, 0);
+    var gKg = grading.reduce(function (s, g) { return s + num(g.total_weight_kg); }, 0);
+    var h = '<section class="card"><h2>دفعة ' + esc(b.load_no) + ' — ' + (closed ? 'مغلقة' : 'مفتوحة') + '</h2>' +
+      '<p class="muted">المستلم ' + esc(b.received_birds) + ' · المذبوح الجيد ' + esc(b.slaughtered_birds) + ' · النافق ' + esc(b.dead_at_slaughter) + ' · المرفوض ' + esc(b.rejected_birds) +
+      ' · المعالج ' + esc(b.birds_processed) + ' · المتبقي ' + esc(b.birds_remaining) + '</p>';
+
+    if (!closed && canP) {
+      h += '<form class="form" data-ops-form="batch-edit" data-id="' + esc(b.batch_id) + '">' +
+        '<select name="slaughterhouse_id">' + sel(houses, 'id', function (x) { return x.name; }, '') + '</select>' +
+        '<input type="number" name="received" min="0" step="1" value="' + esc(b.received_birds) + '">' +
+        '<input type="number" name="slaughtered" min="0" step="1" value="' + esc(b.slaughtered_birds) + '">' +
+        '<input type="number" name="dead" min="0" step="1" value="' + esc(b.dead_at_slaughter) + '">' +
+        '<input type="number" name="rejected" min="0" step="1" value="' + esc(b.rejected_birds) + '">' +
+        '<button class="btn outline" type="submit">تحديث الأرقام</button> ' +
+        '<button class="btn danger" type="button" data-ops="batch-del" data-id="' + esc(b.batch_id) + '">حذف الدفعة</button></form>';
+    }
+
+    // التصنيف
+    h += '<h2 style="margin-top:14px">التصنيف (A وB وغيرهما)</h2>';
+    h += '<div class="table-wrap"><table><thead><tr><th>التصنيف</th><th>فئة الوزن (جم)</th><th>العدد</th><th>الوزن (كجم)</th></tr></thead><tbody>' +
+      grading.map(function (g) { return '<tr><td>' + esc(g.class_name) + '</td><td>' + esc(g.weight_label) + '</td><td>' + esc(g.bird_count) + '</td><td>' + esc(g.total_weight_kg) + '</td></tr>'; }).join('') +
+      '<tr><th>الإجمالي</th><th></th><th>' + gTotal + '</th><th>' + gKg.toFixed(3) + '</th></tr></tbody></table></div>';
+    h += '<p class="muted">إغلاق الدفعة يتطلب أن يساوي مجموع التصنيف المذبوح الجيد (' + esc(b.slaughtered_birds) + ' طير).</p>';
+
+    if (!closed && canP) {
+      h += '<form class="form" data-ops-form="grading" data-id="' + esc(b.batch_id) + '" id="gradingForm">' +
+        '<div id="gradeRows">' + (grading.length ? grading : [{}]).map(gradeRowHTML(classes)).join('') + '</div>' +
+        '<button type="button" class="btn outline" data-ops="grade-add">إضافة صف</button> ' +
+        '<button class="btn gold" type="submit">حفظ التصنيف</button> ' +
+        '<button class="btn danger" type="button" data-ops="batch-close" data-id="' + esc(b.batch_id) + '">إغلاق الدفعة</button></form>';
+    }
+
+    // التكاليف (للمالية ومن يسجّلها فقط)
+    if (canSeeCost) {
+      var ex = must(await C().sb.from('expenses').select('id,category_code,amount_sar,description,expense_date').eq('batch_id', b.batch_id).order('expense_date'));
+      h += '<h2 style="margin-top:14px">تكاليف الدفعة</h2>' +
+        (ex.length ? '<div class="table-wrap"><table><tbody>' + ex.map(function (e) { return '<tr><td>' + esc(e.description || e.category_code) + '</td><td>' + esc(e.amount_sar) + ' ر.س</td></tr>'; }).join('') + '</tbody></table></div>' : '<p class="muted">لا توجد تكاليف مسجلة لهذه الدفعة.</p>');
+      if (!closed && canCost) {
+        h += '<form class="form" data-ops-form="batch-cost" data-id="' + esc(b.batch_id) + '">' +
+          '<select name="category_code"><option value="slaughter_fee">أجرة الذبح</option><option value="cleaning">التنظيف والتجهيز</option><option value="packaging">التعبئة والأكياس</option><option value="loading">التحميل والتنزيل</option></select>' +
+          '<input type="number" name="amount" min="0.01" step="0.01" required placeholder="المبلغ (ريال)">' +
+          '<input name="description" placeholder="وصف (اختياري)">' +
+          '<button class="btn outline" type="submit">إضافة تكلفة</button></form>';
+      }
+    }
+
+    // الإنتاج: تشغيلات بعد إغلاق الدفعة
+    if (closed) {
+      var runs = must(await C().sb.rpc('ops_runs')).filter(function (r) { return r.batch_id === b.batch_id; });
+      h += '<h2 style="margin-top:14px">تشغيلات الإنتاج</h2>';
+      if (canP) {
+        h += '<form class="form" data-ops-form="run-new" data-id="' + esc(b.batch_id) + '"><input type="hidden" name="request_id" value="' + uid() + '">' +
+          '<select name="kind"><option value="whole">تشغيل طيور كاملة</option><option value="cut">تشغيل تقطيع (منتجات جانبية)</option></select>' +
+          '<input type="number" name="birds" min="1" step="1" required placeholder="عدد الطيور المعالجة">' +
+          '<label>التاريخ<input type="date" name="run_date" value="' + new Date().toISOString().slice(0, 10) + '"></label>' +
+          '<button class="btn gold" type="submit">إنشاء تشغيل</button></form>';
+      }
+      h += '<div class="table-wrap"><table><tbody>' + runs.map(function (r) {
+        return '<tr><td>' + esc(r.run_kind === 'whole' ? 'كامل' : 'تقطيع') + ' · ' + esc(r.birds_processed) + ' طير<br><small>' + esc(r.run_status === 'posted' ? 'مرحّل' : 'مسودة') + '</small></td>' +
+          '<td><button class="btn small outline" data-ops="run-open" data-id="' + esc(r.run_id) + '">فتح</button></td></tr>';
+      }).join('') + '</tbody></table></div>';
+      if (st.runId) {
+        var run = runs.find(function (r) { return r.run_id === st.runId; });
+        if (run) h += await runDetail(run, products, canP);
+      }
+    }
+    return h + '</section>';
+  }
+
+  function gradeRowHTML(classes) {
+    return function (g) {
+      return '<div class="grade-row" style="display:grid;gap:6px;grid-template-columns:1fr 1fr 1fr 1fr;margin-bottom:8px">' +
+        '<select name="gr_class">' + sel(classes, 'code', function (c) { return c.name_ar; }, g.class_code || 'A') + '</select>' +
+        '<input name="gr_label" placeholder="الوزن (جم)" value="' + esc(g.weight_label || '') + '">' +
+        '<input name="gr_count" type="number" min="0" step="1" placeholder="العدد" value="' + esc(g.bird_count != null ? g.bird_count : '') + '">' +
+        '<input name="gr_kg" type="number" min="0" step="0.001" placeholder="كجم" value="' + esc(g.total_weight_kg != null ? g.total_weight_kg : '') + '">' +
+        '</div>';
+    };
+  }
+
+  async function runDetail(run, products, canP) {
+    var outs = must(await C().sb.rpc('ops_run_outputs')).filter(function (o) { return o.run_no === run.run_no; });
+    var h = '<div class="card" style="margin-top:10px"><h2>' + esc(run.run_no) + ' — ' + (run.run_status === 'posted' ? 'مرحّل' : 'مسودة') + '</h2>' +
+      '<div class="table-wrap"><table><tbody>' + outs.map(function (o) {
+        return '<tr><td>' + esc(o.product_name) + '</td><td>' + esc(o.piece_count) + ' حبة</td><td>' + esc(o.weight_kg) + ' كجم</td></tr>';
+      }).join('') + '</tbody></table></div>';
+    if (run.run_status !== 'posted' && canP) {
+      h += '<form class="form" data-ops-form="output" data-id="' + esc(run.run_id) + '">' +
+        '<select name="product_id">' + sel(products, 'id', function (p) { return p.name_ar + (p.is_whole_bird ? ' (كامل)' : ''); }, '') + '</select>' +
+        '<input type="number" name="pieces" min="1" step="1" required placeholder="العدد">' +
+        '<input type="number" name="weight" min="0.001" step="0.001" required placeholder="الوزن (كجم)">' +
+        '<button class="btn outline" type="submit">إضافة منتج للتشغيل</button></form>' +
+        '<div class="flex-row"><button class="btn gold" data-ops="run-post" data-id="' + esc(run.run_id) + '">ترحيل التشغيل</button> ' +
+        '<button class="btn danger" data-ops="run-del" data-id="' + esc(run.run_id) + '">حذف المسودة</button></div>';
+    }
+    return h + '</div>';
+  }
+
+  // ---------- معالجات الأحداث ----------
+  async function handleSubmit(form) {
+    var kind = form.getAttribute('data-ops-form');
+    var f = new FormData(form);
+    if (kind === 'farm') return farmSave(f);
+    if (kind === 'load') return loadSave(f);
+    if (kind === 'transport') return transportSave(f);
+    if (kind === 'slaughterhouse') {
+      var sh = await C().sb.from('slaughterhouses').insert({ id: uid(), name: String(f.get('name')).trim(), phone: String(f.get('phone') || '').trim() || null });
+      if (sh.error && !isDup(sh.error)) fail(sh.error);
+      return C().toast('تمت إضافة المسلخ');
+    }
+    if (kind === 'truck') {
+      var r1 = await C().sb.from('trucks').insert({ id: uid(), plate: String(f.get('plate')).trim(), model: String(f.get('model') || '').trim() || null });
+      if (r1.error && !isDup(r1.error)) fail(r1.error); return C().toast('تمت إضافة التريلة');
+    }
+    if (kind === 'driver') {
+      var r2 = await C().sb.from('drivers').insert({ id: uid(), name: String(f.get('name')).trim(), phone: String(f.get('phone') || '').trim() || null });
+      if (r2.error && !isDup(r2.error)) fail(r2.error); return C().toast('تمت إضافة السائق');
+    }
+    if (kind === 'batch-new') {
+      must(await C().sb.rpc('create_slaughter_batch', {
+        p_load_id: f.get('load_id'), p_slaughterhouse_id: f.get('slaughterhouse_id'), p_date: f.get('slaughter_date') || null,
+        p_received: parseInt(f.get('received'), 10), p_slaughtered: parseInt(f.get('slaughtered'), 10),
+        p_dead: parseInt(f.get('dead'), 10), p_rejected: parseInt(f.get('rejected'), 10)
+      }));
+      return C().toast('تم تسجيل استلام الدفعة');
+    }
+    if (kind === 'batch-edit') {
+      must(await C().sb.rpc('update_slaughter_batch', {
+        p_batch_id: form.getAttribute('data-id'), p_slaughterhouse_id: f.get('slaughterhouse_id'), p_date: null,
+        p_received: parseInt(f.get('received'), 10), p_slaughtered: parseInt(f.get('slaughtered'), 10),
+        p_dead: parseInt(f.get('dead'), 10), p_rejected: parseInt(f.get('rejected'), 10)
+      }));
+      return C().toast('تم تحديث الأرقام');
+    }
+    if (kind === 'grading') {
+      var classes = f.getAll('gr_class'), labels = f.getAll('gr_label'), counts = f.getAll('gr_count'), kgs = f.getAll('gr_kg');
+      var rows = [];
+      for (var i = 0; i < classes.length; i++) {
+        if (String(counts[i]).trim() === '' && String(kgs[i]).trim() === '') continue;
+        rows.push({ class_code: classes[i], weight_label: labels[i] || '-', weight_g: parseInt(labels[i], 10) || null,
+                    bird_count: parseInt(counts[i], 10) || 0, total_weight_kg: num(kgs[i]) });
+      }
+      must(await C().sb.rpc('save_grading', { p_batch_id: form.getAttribute('data-id'), p_rows: rows }));
+      return C().toast('تم حفظ التصنيف');
+    }
+    if (kind === 'batch-cost') {
+      var bid = form.getAttribute('data-id');
+      var bl = must(await C().sb.rpc('ops_batches')).find(function (x) { return x.batch_id === bid; });
+      var ld = must(await C().sb.rpc('ops_loads')).find(function (x) { return x.load_no === bl.load_no; });
+      var ex = await C().sb.from('expenses').insert({ id: uid(), category_code: f.get('category_code'), load_id: ld.load_id, batch_id: bid,
+        amount_original: num(f.get('amount')), currency_code: 'SAR', fx_rate: 1, description: String(f.get('description') || '').trim() || null,
+        created_by: sessionUser() });
+      if (ex.error && !isDup(ex.error)) fail(ex.error);
+      return C().toast('تمت إضافة التكلفة');
+    }
+    if (kind === 'run-new') {
+      must(await C().sb.rpc('create_production_run', {
+        p_batch_id: form.getAttribute('data-id'), p_kind: f.get('kind'), p_birds: parseInt(f.get('birds'), 10),
+        p_date: f.get('run_date') || null, p_request_id: f.get('request_id')
+      }));
+      return C().toast('تم إنشاء التشغيل');
+    }
+    if (kind === 'output') {
+      must(await C().sb.rpc('add_production_output', {
+        p_run_id: form.getAttribute('data-id'), p_product_id: f.get('product_id'),
+        p_pieces: parseInt(f.get('pieces'), 10), p_weight: num(f.get('weight'))
+      }));
+      return C().toast('تمت إضافة المنتج للتشغيل');
+    }
+    if (kind === 'product') {
+      var pr = await C().sb.from('product_types').insert({ id: uid(), code: String(f.get('code')).trim().toUpperCase(),
+        name_ar: String(f.get('name_ar')).trim(), is_whole_bird: !!f.get('is_whole_bird'), allocation_factor: num(f.get('allocation_factor')) || 1 });
+      if (pr.error && !isDup(pr.error)) fail(pr.error.message.indexOf('duplicate') >= 0 ? 'رمز المنتج مستخدم من قبل' : pr.error);
+      return C().toast('تمت إضافة المنتج');
+    }
+    if (window.OpsExt) return window.OpsExt.submit(kind, form, f);
+  }
+
+  async function handleClick(btn) {
+    var a = btn.getAttribute('data-ops'), id = btn.getAttribute('data-id');
+    if (a === 'farm-edit') { st.editFarm = id; return C().refresh(); }
+    if (a === 'farm-cancel') { st.editFarm = null; return C().refresh(); }
+    if (a === 'farm-del') { await farmDelete(id); return C().refresh(); }
+    if (a === 'load-edit') { st.editLoad = id; return C().refresh(); }
+    if (a === 'load-cancel') { st.editLoad = null; return C().refresh(); }
+    if (a === 'load-del') { await loadDelete(id); return C().refresh(); }
+    if (a === 'tr-edit') { st.editTruck = id; return C().refresh(); }
+    if (a === 'tr-cancel') { st.editTruck = null; return C().refresh(); }
+    if (a === 'tr-del') { await transportDelete(id); return C().refresh(); }
+    if (a === 'truck-del') { var t = await C().sb.from('trucks').delete().eq('id', id).select('id'); if (t.error) fail(t.error); return C().refresh(); }
+    if (a === 'driver-del') { var d = await C().sb.from('drivers').delete().eq('id', id).select('id'); if (d.error) fail(d.error); return C().refresh(); }
+    if (a === 'batch-open') { st.batchId = id; st.runId = null; return C().refresh(); }
+    if (a === 'batch-del') {
+      if (!confirm('حذف هذه الدفعة؟')) return;
+      must(await C().sb.rpc('delete_slaughter_batch', { p_batch_id: id })); st.batchId = null; return C().refresh();
+    }
+    if (a === 'batch-close') {
+      if (!confirm('إغلاق الدفعة؟ بعد الإغلاق لا يمكن تعديل التصنيف أو التكاليف.')) return;
+      must(await C().sb.rpc('close_slaughter_batch', { p_batch_id: id })); return C().refresh();
+    }
+    if (a === 'grade-add') {
+      var rowsEl = document.getElementById('gradeRows');
+      if (rowsEl) {
+        var tmp = document.createElement('div');
+        tmp.innerHTML = gradeRowHTML(st.classes || [])({});
+        rowsEl.appendChild(tmp.firstChild);
+      }
+      return;
+    }
+    if (a === 'run-open') { st.runId = id; return C().refresh(); }
+    if (a === 'run-post') {
+      if (!confirm('ترحيل التشغيل؟ لا يمكن تعديله بعد الترحيل.')) return;
+      must(await C().sb.rpc('post_production_run', { p_run_id: id })); return C().refresh();
+    }
+    if (a === 'run-del') {
+      if (!confirm('حذف مسودة التشغيل؟')) return;
+      must(await C().sb.rpc('delete_production_run', { p_run_id: id })); st.runId = null; return C().refresh();
+    }
+    if (window.OpsExt) return window.OpsExt.click(a, btn);
+  }
+
+  // ---------- التسجيل والتوجيه ----------
+  P.render = async function (id, el) {
+    var fn = P[id];
+    if (!fn) { el.innerHTML = '<div class="card err">شاشة غير معروفة</div>'; return; }
+    await fn(el);
+  };
+
+  var app = document.getElementById('app');
+  app.addEventListener('submit', async function (e) {
+    var f = e.target;
+    if (!f || !f.getAttribute || !f.getAttribute('data-ops-form')) return;
+    e.preventDefault();
+    var btn = f.querySelector('button[type="submit"]');
+    if (btn) btn.disabled = true;
+    try { await handleSubmit(f); await C().refresh(); }
+    catch (err) { C().toast(err.message || 'حدث خطأ', false); if (btn) btn.disabled = false; }
+  });
+  app.addEventListener('click', async function (e) {
+    var b = e.target.closest && e.target.closest('[data-ops]');
+    if (!b) return;
+    e.preventDefault();
+    b.disabled = true;
+    try { await handleClick(b); }
+    catch (err) { C().toast(err.message || 'حدث خطأ', false); }
+    finally { b.disabled = false; }
+  });
+
+  window.OpsPages = P;
+})();
+
+</script>
+<script>
+/* js/ops2.js */
+(function () {
+  'use strict';
+
+  // الدفعة الثانية: المخزون، المبيعات، العملاء، التحصيل، المرتجعات.
+  // الدفعة الثالثة: المصروفات، التقارير، الأرباح، الأرصدة، لوحة التحكم.
+  // كل كتابة عبر جدول محمي بـ RLS أو دالة مفحوصة. الواجهة لا تُعتبر حماية.
+
+  var st = { invoice: null, customer: null, editInv: null, purge: null };
+
+  function C() { return window.PoultryCtx; }
+  function esc(s) { return C().esc(s); }
+  function uid() {
+    if (window.crypto && window.crypto.randomUUID) return window.crypto.randomUUID();
+    return 'id-' + Date.now() + '-' + Math.random().toString(16).slice(2);
+  }
+  function code(p) { return p + '-' + new Date().toISOString().replace(/[-:TZ.]/g, '').slice(0, 14) + '-' + Math.random().toString(36).slice(2, 6).toUpperCase(); }
+  function num(v) { var n = Number(v); return isFinite(n) ? n : 0; }
+  function money(v) { return num(v).toFixed(2); }
+  function isDup(e) { return !!(e && e.code === '23505'); }
+  function fail(e) { throw (e instanceof Error ? e : new Error(e && e.message ? e.message : 'خطأ غير معروف')); }
+  function must(res) { if (res.error) fail(res.error); return res.data; }
+  function today() { return new Date().toISOString().slice(0, 10); }
+  function sel(list, val, label, selected) {
+    return list.map(function (x) {
+      return '<option value="' + esc(x[val]) + '"' + (String(x[val]) === String(selected) ? ' selected' : '') + '>' + esc(label(x)) + '</option>';
+    }).join('');
+  }
+  function uidSession() { var s = C().session(); return s && s.user ? s.user.id : null; }
+  function loadScript(src) {
+    return new Promise(function (resolve, reject) {
+      if (window.Chart) return resolve();
+      var s = document.createElement('script');
+      s.src = src; s.onload = resolve; s.onerror = function () { reject(new Error('تعذّر تحميل مكتبة الرسوم')); };
+      document.head.appendChild(s);
+    });
+  }
+
+  var P = {};
+
+  // ---------- المخزون ----------
+  P.inventory = async function (el) {
+    var stock = must(await C().sb.rpc('ops_product_stock'));
+    var lots = C().can('stock.read') ? must(await C().sb.rpc('ops_stock_lots')) : [];
+    var moves = C().can('stock.read') ? must(await C().sb.rpc('ops_stock_movements')).slice(0, 60) : [];
+    var damaged = must(await C().sb.rpc('ops_damaged_returns'));
+    var pending = C().can('stock.approve_adjust') ? must(await C().sb.from('stock_adjustments').select('id,lot_id,pieces_delta,weight_delta_kg,reason,status,created_at').eq('status', 'requested')) : [];
+    var html = '<section class="card"><h2>الأرصدة (بلا تكلفة)</h2><div class="table-wrap"><table>' +
+      '<thead><tr><th>المنتج</th><th>المتوفر (حبة)</th><th>المحجوز بفواتير مسودة</th><th>المتاح للبيع (حبة)</th><th>المتاح (كجم)</th></tr></thead><tbody>' +
+      stock.map(function (s) {
+        return '<tr><td>' + esc(s.product_name) + '<br><small dir="ltr">' + esc(s.product_code) + '</small></td>' +
+          '<td>' + esc(num(s.pieces_on_hand).toFixed(0)) + '</td><td>' + esc(num(s.pieces_reserved).toFixed(0)) + ' حبة / ' + esc(num(s.weight_reserved_kg).toFixed(2)) + ' كجم</td>' +
+          '<td><b>' + esc(num(s.pieces_available).toFixed(0)) + '</b></td><td>' + esc(num(s.weight_available_kg).toFixed(2)) + '</td></tr>';
+      }).join('') + '</tbody></table></div><p class="muted">المحجوز يُحسب من الفواتير المسودة وهو للإرشاد. الترحيل يتحقق من المتاح الفعلي في الدفعات.</p></section>';
+
+    if (C().can('stock.request_adjust') && lots.length) {
+      html += '<section class="card"><h2>طلب تسوية أو جرد</h2><form class="form" data-ops-form="adj-request">' +
+        '<select name="lot_id" required>' + sel(lots, 'lot_id', function (l) { return l.product_name + ' · ' + l.load_no + ' · متبقٍ ' + num(l.pieces_remaining).toFixed(0) + ' حبة'; }, '') + '</select>' +
+        '<input type="number" name="pieces" step="1" placeholder="فرق العدد (سالب للنقص)" value="0">' +
+        '<input type="number" name="weight" step="0.001" placeholder="فرق الوزن كجم (اختياري)" value="0">' +
+        '<input name="reason" placeholder="السبب (إلزامي)" required>' +
+        '<button class="btn gold" type="submit">إرسال الطلب للاعتماد</button></form></section>';
+    }
+    if (pending.length) {
+      html += '<section class="card"><h2>تسويات بانتظار الاعتماد (' + pending.length + ')</h2><div class="table-wrap"><table><tbody>' +
+        pending.map(function (a) {
+          return '<tr><td>' + esc(a.reason) + '<br><small>' + esc(a.created_at.slice(0, 10)) + '</small></td><td>' + esc(a.pieces_delta) + ' حبة · ' + esc(a.weight_delta_kg) + ' كجم</td>' +
+            '<td><button class="btn small gold" data-ops="adj-approve" data-id="' + esc(a.id) + '">اعتماد</button></td></tr>';
+        }).join('') + '</tbody></table></div></section>';
+    }
+    if (lots.length) {
+      html += '<section class="card"><h2>الدفعات (' + lots.length + ')</h2><div class="table-wrap"><table><thead><tr><th>المنتج</th><th>الحمولة</th><th>الأولي</th><th>المتبقي</th></tr></thead><tbody>' +
+        lots.map(function (l) {
+          return '<tr><td>' + esc(l.product_name) + '</td><td>' + esc(l.load_no) + '</td><td>' + esc(l.pieces_initial) + ' حبة / ' + esc(num(l.weight_initial_kg).toFixed(2)) + ' كجم</td>' +
+            '<td>' + esc(num(l.pieces_remaining).toFixed(0)) + ' حبة / ' + esc(num(l.weight_remaining_kg).toFixed(2)) + ' كجم</td></tr>';
+        }).join('') + '</tbody></table></div></section>';
+    }
+    if (moves.length) {
+      html += '<section class="card"><h2>آخر الحركات</h2><div class="table-wrap"><table><tbody>' +
+        moves.map(function (m) {
+          return '<tr><td>' + esc(m.created_at.slice(0, 16).replace('T', ' ')) + '</td><td>' + esc(m.movement_type) + '</td><td>' + esc(m.product_name) + '</td>' +
+            '<td>' + esc(num(m.pieces_delta).toFixed(0)) + ' حبة</td><td>' + esc(m.note || m.load_no) + '</td></tr>';
+        }).join('') + '</tbody></table></div></section>';
+    }
+    html += '<section class="card"><h2>المرتجعات التالفة (للمتابعة)</h2><div class="table-wrap"><table><tbody>' +
+      (damaged.map(function (d) { return '<tr><td>' + esc(d.credit_note_no) + '</td><td>' + esc(d.product_name) + '</td><td>' + esc(d.quantity) + ' ' + esc(d.unit) + '</td></tr>'; }).join('') ||
+        '<tr><td>لا توجد مرتجعات تالفة</td></tr>') + '</tbody></table></div></section>';
+    el.innerHTML = html;
+  };
+
+  // ---------- العملاء والفواتير ----------
+  P.sales = async function (el) {
+    var customers = must(await C().sb.from('customers').select('id,code,name,customer_type,credit_limit,phone').eq('is_active', true).order('name'));
+    var products = must(await C().sb.from('product_types').select('id,code,name_ar,pieces_per_carton').eq('is_active', true).order('name_ar'));
+    var invoices = must(await C().sb.from('sales_invoices').select('id,invoice_no,customer_id,invoice_date,sale_type,status,total,prices_include_vat').order('invoice_date', { ascending: false }).limit(100));
+    var cname = {}; customers.forEach(function (c) { cname[c.id] = c.name; });
+    st.products = products;
+    var canM = C().can('master.write');
+    var html = '';
+    if (canM) html += '<section class="card"><h2>إضافة عميل (مندوب مستقل أو تاجر جملة)</h2><form class="form" data-ops-form="customer">' +
+      '<input name="name" placeholder="الاسم" required><input name="phone" placeholder="الهاتف" dir="ltr"><input name="car_plate" placeholder="رقم السيارة (اختياري)">' +
+      '<select name="customer_type"><option value="agent">مندوب مستقل</option><option value="wholesale">تاجر جملة</option></select>' +
+      '<input type="number" name="credit_limit" min="0" step="0.01" placeholder="حد ائتماني (اختياري)">' +
+      '<button class="btn outline" type="submit">حفظ العميل</button></form></section>';
+
+    var rows = [];
+    for (var i = 0; i < customers.length; i++) {
+      var bal = await C().sb.rpc('customer_balance', { p_customer_id: customers[i].id });
+      rows.push('<tr><td>' + esc(customers[i].name) + '<br><small>' + esc(customers[i].customer_type === 'agent' ? 'مندوب مستقل' : 'تاجر جملة') + '</small></td>' +
+        '<td>' + (bal.error || bal.data === null ? '—' : esc(money(bal.data)) + ' ر.س') + '</td>' +
+        '<td>' + (customers[i].credit_limit != null ? esc(money(customers[i].credit_limit)) : 'بلا حد') + '</td></tr>');
+    }
+    html += '<section class="card"><h2>العملاء وأرصدتهم</h2><div class="table-wrap"><table><thead><tr><th>العميل</th><th>الرصيد المستحق</th><th>الحد الائتماني</th></tr></thead><tbody>' +
+      (rows.join('') || '<tr><td colspan="3">لا يوجد عملاء</td></tr>') + '</tbody></table></div></section>';
+
+    if (customers.length && products.length) {
+      var editing = st.editInv ? invoices.find(function (x) { return x.id === st.editInv; }) : null;
+      var editLines = [];
+      if (editing) {
+        editLines = must(await C().sb.from('sales_invoice_lines').select('product_id,unit,quantity,unit_price').eq('invoice_id', editing.id));
+      }
+      var holderHTML = editing
+        ? editLines.map(function (l) {
+            return '<div class="inv-line" style="display:grid;gap:6px;grid-template-columns:1.4fr 1fr 1fr 1fr;margin-bottom:8px">' +
+              '<select name="product_id">' + sel(products, 'id', function (p) { return p.name_ar; }, l.product_id) + '</select>' +
+              '<select name="unit">' + ['piece','kg','carton'].map(function (u) { return '<option value="' + u + '"' + (u === l.unit ? ' selected' : '') + '>' + ({piece:'حبة',kg:'كيلو',carton:'كرتون'})[u] + '</option>'; }).join('') + '</select>' +
+              '<input name="quantity" type="number" min="0.001" step="0.001" value="' + esc(l.quantity) + '">' +
+              '<input name="unit_price" type="number" min="0" step="0.01" value="' + esc(l.unit_price) + '">' +
+              '</div>';
+          }).join('')
+        : invLineHTML(products);
+      html += '<section class="card"><h2>' + (editing ? 'تعديل مسودة فاتورة' : 'فاتورة بيع جديدة (متعددة الأصناف)') + '</h2>' +
+        '<form class="form" data-ops-form="' + (editing ? 'invoice-update' : 'invoice') + '"' + (editing ? ' data-id="' + esc(editing.id) + '"' : '') + '>' +
+        '<input type="hidden" name="request_id" value="' + uid() + '">' +
+        '<select name="customer_id" required>' + sel(customers, 'id', function (c) { return c.name; }, editing ? editing.customer_id : '') + '</select>' +
+        '<select name="sale_type"><option value="cash"' + (!editing || editing.sale_type === 'cash' ? ' selected' : '') + '>نقدي</option><option value="credit"' + (editing && editing.sale_type === 'credit' ? ' selected' : '') + '>آجل</option></select>' +
+        '<label><input type="checkbox" name="incl" style="width:auto"' + (editing && editing.prices_include_vat ? ' checked' : '') + '> الأسعار شاملة الضريبة</label>' +
+        '<div id="invLines">' + holderHTML + '</div>' +
+        '<button type="button" class="btn outline" data-ops="line-add">إضافة صنف</button> ' +
+        '<button class="btn gold" type="submit">' + (editing ? 'حفظ التعديل' : 'حفظ المسودة') + '</button>' +
+        (editing ? ' <button type="button" class="btn outline" data-ops="inv-cancel-edit">إلغاء التعديل</button>' : '') +
+        '</form>' +
+        '<p class="muted">الحفظ ذرّي: إما تُحفظ الفاتورة كاملة مع حجز أصنافها، أو لا يُحفظ شيء. المسودة تحجز الكميات حتى تُرحَّل أو تُحذف.</p></section>';
+    }
+
+    html += '<section class="card"><h2>الفواتير (آخر 100)</h2><div class="table-wrap"><table><thead><tr><th>الفاتورة</th><th>العميل</th><th>النوع</th><th>الإجمالي</th><th>الحالة</th><th></th></tr></thead><tbody>' +
+      invoices.map(function (i) {
+        return '<tr><td>' + esc(i.invoice_no || 'مسودة') + '<br><small>' + esc(i.invoice_date) + '</small></td><td>' + esc(cname[i.customer_id] || '') + '</td>' +
+          '<td>' + (i.sale_type === 'cash' ? 'نقدي' : 'آجل') + '</td><td>' + esc(money(i.total)) + '</td><td>' + (i.status === 'posted' ? 'مرحّلة' : (i.status === 'draft' ? 'مسودة' : esc(i.status))) + '</td>' +
+          '<td>' + (i.status === 'draft' ? '<button class="btn small outline" data-ops="inv-edit" data-id="' + esc(i.id) + '">تعديل</button> <button class="btn small gold" data-ops="inv-post" data-id="' + esc(i.id) + '">ترحيل</button> <button class="btn small danger" data-ops="inv-del" data-id="' + esc(i.id) + '">إلغاء المسودة</button>' : '') + '</td></tr>';
+      }).join('') + '</tbody></table></div></section>';
+    el.innerHTML = html;
+  };
+
+  function invLineHTML(products) {
+    return '<div class="inv-line" style="display:grid;gap:6px;grid-template-columns:1.4fr 1fr 1fr 1fr;margin-bottom:8px">' +
+      '<select name="product_id">' + sel(products, 'id', function (p) { return p.name_ar; }, '') + '</select>' +
+      '<select name="unit"><option value="piece">حبة</option><option value="kg">كيلو</option><option value="carton">كرتون</option></select>' +
+      '<input name="quantity" type="number" min="0.001" step="0.001" placeholder="الكمية">' +
+      '<input name="unit_price" type="number" min="0" step="0.01" placeholder="سعر الوحدة">' +
+      '</div>';
+  }
+
+  // ---------- التحصيل ----------
+  P.payments = async function (el) {
+    var customers = must(await C().sb.from('customers').select('id,name').eq('is_active', true).order('name'));
+    var invoices = must(await C().sb.from('sales_invoices').select('id,invoice_no,customer_id,total').eq('status', 'posted').order('invoice_date', { ascending: false }).limit(200));
+    var pays = must(await C().sb.from('customer_payments').select('id,customer_id,invoice_id,amount_sar,payment_date,method').order('payment_date', { ascending: false }).limit(100));
+    var cname = {}; customers.forEach(function (c) { cname[c.id] = c.name; });
+    var html = '<section class="card"><h2>تسجيل تحصيل من عميل</h2>' +
+      (customers.length ? '<form class="form" data-ops-form="payment" id="payForm"><input type="hidden" name="request_id" value="' + uid() + '">' +
+        '<select name="customer_id" required>' + sel(customers, 'id', function (c) { return c.name; }, '') + '</select>' +
+        '<select name="invoice_id"><option value="">بلا فاتورة محددة (دفعة على الحساب)</option>' + invoices.map(function (i) { return '<option value="' + esc(i.id) + '">' + esc(i.invoice_no) + ' · ' + esc(money(i.total)) + ' ر.س</option>'; }).join('') + '</select>' +
+        '<input type="number" name="amount" min="0.01" step="0.01" required placeholder="المبلغ (ريال)">' +
+        '<select name="method"><option value="cash">نقدي</option><option value="bank_transfer">تحويل بنكي</option><option value="other">أخرى</option></select>' +
+        '<label>التاريخ<input type="date" name="payment_date" value="' + today() + '"></label>' +
+        '<button class="btn gold" type="submit">تسجيل التحصيل</button></form>' : '<p class="muted">لا يوجد عملاء.</p>') + '</section>';
+    if (C().can('finance.write')) {
+      var openLoads = must(await C().sb.from('v_supplier_balances').select('load_id,load_no,farm_name,balance_sar'));
+      openLoads = openLoads.filter(function (l) { return num(l.balance_sar) > 0; });
+      html += '<section class="card"><h2>دفع للمورد (مزرعة)</h2>' +
+        (openLoads.length ? '<form class="form" data-ops-form="supplier-pay"><input type="hidden" name="request_id" value="' + uid() + '">' +
+          '<select name="load_id" required>' + openLoads.map(function (l) { return '<option value="' + esc(l.load_id) + '">' + esc(l.load_no + ' · ' + l.farm_name + ' · متبقٍ ' + money(l.balance_sar) + ' ر.س') + '</option>'; }).join('') + '</select>' +
+          '<input type="number" name="amount" min="0.01" step="0.01" required placeholder="المبلغ (ريال)">' +
+          '<select name="method"><option value="cash">نقدي</option><option value="bank_transfer">تحويل بنكي</option><option value="other">أخرى</option></select>' +
+          '<label>التاريخ<input type="date" name="payment_date" value="' + today() + '"></label>' +
+          '<button class="btn gold" type="submit">تسجيل الدفعة للمورد</button></form>' : '<p class="muted">لا توجد مستحقات للموردين.</p>') + '</section>';
+    }
+    html += '<section class="card"><h2>آخر التحصيلات</h2><div class="table-wrap"><table><tbody>' +
+      pays.map(function (p) { return '<tr><td>' + esc(cname[p.customer_id] || '') + '<br><small>' + esc(p.payment_date) + '</small></td><td>' + esc(money(p.amount_sar)) + ' ر.س</td><td>' + esc(p.method) + '</td></tr>'; }).join('') +
+      '</tbody></table></div></section>';
+    el.innerHTML = html;
+  };
+
+  // ---------- المرتجعات ----------
+  P.returns = async function (el) {
+    var invoices = must(await C().sb.from('sales_invoices').select('id,invoice_no,customer_id').eq('status', 'posted').order('invoice_date', { ascending: false }).limit(200));
+    var cns = must(await C().sb.from('credit_notes').select('id,credit_note_no,note_date,total,status,reason').order('note_date', { ascending: false }).limit(100));
+    var html = '<section class="card"><h2>مرتجع جديد (إشعار دائن)</h2>';
+    if (invoices.length) {
+      html += '<form class="form" data-ops-form="cn-select"><select name="invoice_id" required>' + sel(invoices, 'id', function (i) { return i.invoice_no; }, st.invoice || '') + '</select>' +
+        '<button class="btn outline" type="submit">عرض أصناف الفاتورة</button></form>';
+      if (st.invoice) {
+        var lines = must(await C().sb.rpc('sales_lines_for_return', { p_invoice_id: st.invoice }));
+        html += '<form class="form" data-ops-form="cn-create" data-id="' + esc(st.invoice) + '" style="margin-top:10px">' +
+          '<input type="hidden" name="request_id" value="' + uid() + '"><input name="reason" placeholder="سبب المرتجع" required>' +
+          '<div class="table-wrap"><table><thead><tr><th>الصنف</th><th>المتبقي</th><th>الكمية المرتجعة</th><th>الحالة</th></tr></thead><tbody>' +
+          lines.map(function (l) {
+            return '<tr><td>' + esc(l.product_name) + ' (' + esc(l.unit) + ')</td><td>' + esc(num(l.remaining_qty).toFixed(3)) + '</td>' +
+              '<td><input type="hidden" name="line_id" value="' + esc(l.line_id) + '"><input name="qty" type="number" min="0" step="0.001" max="' + esc(l.remaining_qty) + '" value="0"></td>' +
+              '<td><select name="cond"><option value="good">صالح (يعود للمخزون)</option><option value="damaged">تالف</option></select></td></tr>';
+          }).join('') + '</tbody></table></div>' +
+          '<button class="btn gold" type="submit">حفظ وترحيل الإشعار</button></form>';
+      }
+    } else html += '<p class="muted">لا توجد فواتير مرحّلة.</p>';
+    html += '</section><section class="card"><h2>إشعارات الدائن</h2><div class="table-wrap"><table><tbody>' +
+      cns.map(function (c) { return '<tr><td>' + esc(c.credit_note_no || 'مسودة') + '<br><small>' + esc(c.note_date) + '</small></td><td>' + esc(money(c.total)) + ' ر.س</td><td>' + (c.status === 'posted' ? 'مرحّل' : 'مسودة') + '</td></tr>'; }).join('') +
+      '</tbody></table></div></section>';
+    el.innerHTML = html;
+  };
+
+  // ---------- المصروفات (المرحلة الثالثة) ----------
+  P.expenses = async function (el) {
+    var cats = must(await C().sb.from('expense_categories').select('code,name_ar,is_load_cost').eq('is_active', true).order('name_ar'));
+    var loads = must(await C().sb.rpc('ops_loads'));
+    var list = must(await C().sb.from('expenses').select('id,expense_date,category_code,amount_sar,description,load_id,reverses_id,correction_reason').order('expense_date', { ascending: false }).limit(200));
+    var reversed = {};
+    list.forEach(function (x) { if (x.reverses_id) reversed[x.reverses_id] = true; });
+    var lname = {}; loads.forEach(function (l) { lname[l.load_id] = l.load_no; });
+    var cname = {}; cats.forEach(function (c) { cname[c.code] = c.name_ar; });
+    var html = '';
+    if (C().can('expenses.write')) {
+      html += '<section class="card"><h2>تسجيل مصروف</h2><form class="form" data-ops-form="expense"><input type="hidden" name="id" value="' + uid() + '">' +
+        '<select name="category_code">' + sel(cats, 'code', function (c) { return c.name_ar; }, '') + '</select>' +
+        '<select name="load_id"><option value="">غير مرتبط بحمولة (مصروف عام)</option>' + loads.map(function (l) { return '<option value="' + esc(l.load_id) + '">' + esc(l.load_no) + '</option>'; }).join('') + '</select>' +
+        '<input type="number" name="amount" min="0.01" step="0.01" required placeholder="المبلغ (ريال)">' +
+        '<label>التاريخ<input type="date" name="expense_date" value="' + today() + '"></label>' +
+        '<input name="description" placeholder="الوصف">' +
+        '<button class="btn gold" type="submit">حفظ المصروف</button></form></section>';
+    }
+    html += '<section class="card"><h2>المصروفات</h2><div class="table-wrap"><table><tbody>' +
+      list.map(function (e) {
+        var canRev = C().can('expenses.write') && !e.reverses_id && !reversed[e.id];
+        var tag = e.reverses_id ? ' <small>(قيد عكسي: ' + esc(e.correction_reason || '') + ')</small>' : (reversed[e.id] ? ' <small>(معكوس)</small>' : '');
+        return '<tr><td>' + esc(e.expense_date) + '</td><td>' + esc(cname[e.category_code] || e.category_code) + (e.load_id ? ' · ' + esc(lname[e.load_id] || '') : '') + '</td><td>' + esc(e.description || '') + tag + '</td><td>' + esc(money(e.amount_sar)) + ' ر.س</td>' +
+          '<td>' + (canRev ? '<button class="btn small outline" data-ops="exp-reverse" data-id="' + esc(e.id) + '">قيد عكسي</button>' : '') + '</td></tr>';
+      }).join('') +
+      '</tbody></table></div></section>';
+    el.innerHTML = html;
+  };
+
+  // ---------- التقارير المالية والتشغيلية ----------
+  P.reports = async function (el) {
+    var prof = must(await C().sb.from('v_sales_profit').select('invoice_id,invoice_no,invoice_date,net_sales_excl_vat,credit_excl_vat,net_cogs_sar'));
+    var exp = must(await C().sb.from('expenses').select('amount_sar,load_id,category_code,expense_date'));
+    var cust = must(await C().sb.from('v_customer_balances').select('name,balance_sar').order('name'));
+    var supp = must(await C().sb.from('v_supplier_balances').select('load_no,farm_name,balance_sar'));
+    var pays = must(await C().sb.from('customer_payments').select('amount_sar'));
+    var spays = must(await C().sb.from('supplier_payments').select('amount_sar'));
+    var batches = must(await C().sb.rpc('ops_batches'));
+
+    var sales = prof.reduce(function (s, x) { return s + num(x.net_sales_excl_vat) - num(x.credit_excl_vat); }, 0);
+    var cogs = prof.reduce(function (s, x) { return s + num(x.net_cogs_sar); }, 0);
+    var gross = sales - cogs;
+    var opex = exp.filter(function (e) { return !e.load_id; }).reduce(function (s, e) { return s + num(e.amount_sar); }, 0);
+    var net = gross - opex;
+    var cashIn = pays.reduce(function (s, p) { return s + num(p.amount_sar); }, 0);
+    var cashOut = spays.reduce(function (s, p) { return s + num(p.amount_sar); }, 0) + exp.reduce(function (s, e) { return s + num(e.amount_sar); }, 0);
+
+    el.innerHTML =
+      '<section class="card"><h2>الأرباح والخسائر</h2><div class="table-wrap"><table><tbody>' +
+      '<tr><td>صافي المبيعات (بدون ضريبة، بعد المرتجعات)</td><td>' + money(sales) + ' ر.س</td></tr>' +
+      '<tr><td>تكلفة البضاعة المباعة</td><td>' + money(cogs) + ' ر.س</td></tr>' +
+      '<tr><th>مجمل الربح</th><th>' + money(gross) + ' ر.س</th></tr>' +
+      '<tr><td>مصروفات تشغيلية عامة (غير مرتبطة بحمولة)</td><td>' + money(opex) + ' ر.س</td></tr>' +
+      '<tr><th>صافي الربح</th><th>' + money(net) + ' ر.س</th></tr></tbody></table></div>' +
+      '<p class="muted">تكاليف الحمولات محسوبة داخل تكلفة البضاعة المباعة، فلا تُضاف مرتين.</p></section>' +
+      '<section class="card"><h2>حركة النقدية</h2><div class="table-wrap"><table><tbody>' +
+      '<tr><td>تحصيلات من العملاء</td><td>' + money(cashIn) + ' ر.س</td></tr>' +
+      '<tr><td>مدفوعات للموردين ومصروفات</td><td>' + money(cashOut) + ' ر.س</td></tr>' +
+      '<tr><th>صافي النقدية</th><th>' + money(cashIn - cashOut) + ' ر.س</th></tr></tbody></table></div></section>' +
+      '<section class="card"><h2>مديونية العملاء</h2><div class="table-wrap"><table><tbody>' +
+      cust.map(function (c) { return '<tr><td>' + esc(c.name) + '</td><td>' + money(c.balance_sar) + ' ر.س</td></tr>'; }).join('') + '</tbody></table></div></section>' +
+      '<section class="card"><h2>مستحقات الموردين (حسب الحمولة)</h2><div class="table-wrap"><table><tbody>' +
+      supp.map(function (s) { return '<tr><td>' + esc(s.load_no) + ' · ' + esc(s.farm_name) + '</td><td>' + money(s.balance_sar) + ' ر.س</td></tr>'; }).join('') + '</tbody></table></div></section>' +
+      '<section class="card"><h2>تقرير التشغيل</h2><div class="table-wrap"><table><tbody>' +
+      batches.map(function (b) { return '<tr><td>' + esc(b.load_no) + '</td><td>مستلم ' + esc(b.received_birds) + ' · مذبوح ' + esc(b.slaughtered_birds) + ' · نافق ' + esc(b.dead_at_slaughter) + ' · مرفوض ' + esc(b.rejected_birds) + '</td><td>معالج ' + esc(b.birds_processed) + ' · متبقٍ ' + esc(b.birds_remaining) + '</td></tr>'; }).join('') +
+      '</tbody></table></div></section>';
+  };
+
+  // ---------- لوحة التحكم والرسوم البيانية ----------
+  P.dashboard = async function (el) {
+    var prof = must(await C().sb.from('v_sales_profit').select('invoice_date,net_sales_excl_vat,credit_excl_vat,net_cogs_sar'));
+    var exp = must(await C().sb.from('expenses').select('amount_sar,category_code,load_id'));
+    var stock = must(await C().sb.rpc('ops_product_stock'));
+    var cust = must(await C().sb.from('v_customer_balances').select('balance_sar'));
+    var supp = must(await C().sb.from('v_supplier_balances').select('balance_sar'));
+    var sales = prof.reduce(function (s, x) { return s + num(x.net_sales_excl_vat) - num(x.credit_excl_vat); }, 0);
+    var cogs = prof.reduce(function (s, x) { return s + num(x.net_cogs_sar); }, 0);
+    var opex = exp.filter(function (e) { return !e.load_id; }).reduce(function (s, e) { return s + num(e.amount_sar); }, 0);
+    var recv = cust.reduce(function (s, c) { return s + num(c.balance_sar); }, 0);
+    var pay = supp.reduce(function (s, c) { return s + num(c.balance_sar); }, 0);
+    var byDay = {}; prof.forEach(function (x) { byDay[x.invoice_date] = (byDay[x.invoice_date] || 0) + num(x.net_sales_excl_vat) - num(x.credit_excl_vat); });
+    var byCat = {}; exp.forEach(function (e) { byCat[e.category_code] = (byCat[e.category_code] || 0) + num(e.amount_sar); });
+
+    var purgeHTML = '';
+    if (C().can('users.manage')) {
+      purgeHTML = '<section class="card"><h2>تنظيف بيانات الاختبار (TEST)</h2>' +
+        '<p class="muted">يحذف فقط السجلات الموسومة TEST. لا يمس أي بيانات حقيقية.</p>' +
+        (st.purge
+          ? '<div class="table-wrap"><table><tbody>' + Object.keys(st.purge).map(function (k) {
+              return '<tr><td>' + esc(k) + '</td><td>' + esc(st.purge[k]) + '</td></tr>';
+            }).join('') + '</tbody></table></div>' +
+            '<p>سيُحذف ما مجموعه <b>' + Object.keys(st.purge).reduce(function (s, k) { return s + Number(st.purge[k] || 0); }, 0) + '</b> سجلاً.</p>' +
+            '<input id="purgeConfirm" placeholder="اكتب TEST للتأكيد" dir="ltr">' +
+            '<div class="flex-row"><button class="btn danger" data-ops="purge-run">تنفيذ الحذف</button></div>'
+          : '<button class="btn outline" data-ops="purge-open">معاينة عدد السجلات</button>') +
+        '</section>';
+    }
+
+    el.innerHTML = purgeHTML +
+      '<section class="card"><div class="kpis" style="display:grid;grid-template-columns:1fr 1fr;gap:10px">' +
+      kpi('صافي المبيعات', money(sales) + ' ر.س') + kpi('مجمل الربح', money(sales - cogs) + ' ر.س') +
+      kpi('صافي الربح', money(sales - cogs - opex) + ' ر.س') + kpi('مديونية العملاء', money(recv) + ' ر.س') +
+      kpi('مستحقات الموردين', money(pay) + ' ر.س') + kpi('المتاح للبيع (حبة)', stock.reduce(function (s, x) { return s + num(x.pieces_available); }, 0).toFixed(0)) +
+      '</div></section>' +
+      '<section class="card"><h2>المبيعات حسب اليوم</h2><canvas id="chartSales" height="200"></canvas></section>' +
+      '<section class="card"><h2>المصروفات حسب الفئة</h2><canvas id="chartExp" height="200"></canvas></section>' +
+      '<section class="card"><h2>المتاح للبيع حسب المنتج</h2><canvas id="chartStock" height="200"></canvas></section>';
+
+    try {
+      await loadScript('https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js');
+      var days = Object.keys(byDay).sort();
+      new window.Chart(document.getElementById('chartSales'), { type: 'bar', data: { labels: days, datasets: [{ label: 'ر.س', data: days.map(function (d) { return byDay[d]; }), backgroundColor: '#0b1f3a' }] }, options: { responsive: true, plugins: { legend: { display: false } } } });
+      var cats = Object.keys(byCat);
+      new window.Chart(document.getElementById('chartExp'), { type: 'doughnut', data: { labels: cats, datasets: [{ data: cats.map(function (c) { return byCat[c]; }), backgroundColor: ['#0b1f3a', '#c9a227', '#13305a', '#f6eccc', '#6b7280', '#b42318', '#1e7b4a', '#9ca3af', '#d97706'] }] } });
+      new window.Chart(document.getElementById('chartStock'), { type: 'bar', data: { labels: stock.map(function (s) { return s.product_name; }), datasets: [{ label: 'حبة', data: stock.map(function (s) { return num(s.pieces_available); }), backgroundColor: '#c9a227' }] }, options: { indexAxis: 'y', responsive: true, plugins: { legend: { display: false } } } });
+    } catch (e) {
+      var note = document.createElement('p'); note.className = 'muted'; note.textContent = 'تعذّر تحميل الرسوم البيانية (يتطلب اتصالاً بالإنترنت). الأرقام أعلاه تعمل بدونها.';
+      el.appendChild(note);
+    }
+  };
+
+  function kpi(label, value) {
+    return '<div style="background:var(--gold-soft);border-radius:10px;padding:10px"><small>' + label + '</small><div style="font-size:18px;font-weight:700;color:var(--navy)">' + value + '</div></div>';
+  }
+
+  // ---------- معالجات الكتابة ----------
+  async function submit(kind, form, f) {
+    if (kind === 'adj-request') {
+      var r = await C().sb.from('stock_adjustments').insert({ id: uid(), lot_id: f.get('lot_id'), pieces_delta: parseInt(f.get('pieces'), 10) || 0,
+        weight_delta_kg: num(f.get('weight')), reason: String(f.get('reason')).trim(), status: 'requested', requested_by: uidSession() });
+      if (r.error && !isDup(r.error)) fail(r.error);
+      return C().toast('أُرسل طلب التسوية للاعتماد');
+    }
+    if (kind === 'customer') {
+      var c = await C().sb.from('customers').insert({ id: uid(), code: code('C'), name: String(f.get('name')).trim(), phone: String(f.get('phone') || '').trim() || null,
+        car_plate: String(f.get('car_plate') || '').trim() || null, customer_type: f.get('customer_type'),
+        credit_limit: f.get('credit_limit') ? num(f.get('credit_limit')) : null });
+      if (c.error && !isDup(c.error)) fail(c.error);
+      return C().toast('تم حفظ العميل');
+    }
+    if (kind === 'invoice') {
+      must(await C().sb.rpc('create_sales_invoice', {
+        p_request_id: f.get('request_id'), p_customer_id: f.get('customer_id'), p_sale_type: f.get('sale_type'),
+        p_incl: !!f.get('incl'), p_lines: linesFromForm(f)
+      }));
+      return C().toast('تم حفظ مسودة الفاتورة');
+    }
+    if (kind === 'invoice-update') {
+      must(await C().sb.rpc('update_sales_draft', {
+        p_invoice_id: form.getAttribute('data-id'), p_customer_id: f.get('customer_id'), p_sale_type: f.get('sale_type'),
+        p_incl: !!f.get('incl'), p_lines: linesFromForm(f)
+      }));
+      st.editInv = null;
+      return C().toast('تم تعديل المسودة وتحديث الحجز');
+    }
+    if (kind === 'payment') {
+      must(await C().sb.rpc('record_customer_payment', {
+        p_customer_id: f.get('customer_id'), p_invoice_id: f.get('invoice_id') || null, p_amount: num(f.get('amount')),
+        p_method: f.get('method'), p_request_id: f.get('request_id'), p_date: f.get('payment_date') || null }));
+      return C().toast('تم تسجيل التحصيل');
+    }
+    if (kind === 'supplier-pay') {
+      must(await C().sb.rpc('record_supplier_payment', {
+        p_load_id: f.get('load_id'), p_amount: num(f.get('amount')), p_method: f.get('method'),
+        p_request_id: f.get('request_id'), p_date: f.get('payment_date') || null }));
+      return C().toast('تم تسجيل الدفعة للمورد');
+    }
+    if (kind === 'cn-select') { st.invoice = f.get('invoice_id'); return; }
+    if (kind === 'cn-create') {
+      var cid = uid();
+      var ch = await C().sb.from('credit_notes').insert({ id: cid, invoice_id: form.getAttribute('data-id'),
+        customer_id: await invoiceCustomer(form.getAttribute('data-id')), note_date: today(), reason: String(f.get('reason')).trim(),
+        created_by: uidSession(), client_request_id: f.get('request_id') });
+      if (ch.error && !isDup(ch.error)) fail(ch.error);
+      var ids = f.getAll('line_id'), qty = f.getAll('qty'), cond = f.getAll('cond');
+      var cl = [];
+      for (var j = 0; j < ids.length; j++) {
+        if (!(num(qty[j]) > 0)) continue;
+        cl.push({ id: uid(), credit_note_id: cid, invoice_line_id: ids[j], quantity: num(qty[j]), condition: cond[j] });
+      }
+      if (!cl.length) fail('حدد كمية مرتجعة لصنف واحد على الأقل');
+      var cls = await C().sb.from('credit_note_lines').insert(cl);
+      if (cls.error && !isDup(cls.error)) fail(cls.error);
+      must(await C().sb.rpc('post_credit_note', { p_credit_note_id: cid }));
+      st.invoice = null;
+      return C().toast('تم ترحيل الإشعار الدائن');
+    }
+    if (kind === 'expense') {
+      var ex = await C().sb.from('expenses').insert({ id: f.get('id'), expense_date: f.get('expense_date') || today(),
+        category_code: f.get('category_code'), load_id: f.get('load_id') || null, currency_code: 'SAR', fx_rate: 1,
+        amount_original: num(f.get('amount')), description: String(f.get('description') || '').trim() || null,
+        client_request_id: f.get('id'), created_by: uidSession() });
+      if (ex.error && !isDup(ex.error)) fail(ex.error);
+      return C().toast('تم حفظ المصروف');
+    }
+  }
+
+  async function invoiceCustomer(invId) {
+    var r = await C().sb.from('sales_invoices').select('customer_id').eq('id', invId).single();
+    if (r.error) fail(r.error);
+    return r.data.customer_id;
+  }
+
+  function linesFromForm(f) {
+    var pids = f.getAll('product_id'), units = f.getAll('unit'), qs = f.getAll('quantity'), ps = f.getAll('unit_price');
+    var lines = [];
+    for (var i = 0; i < pids.length; i++) {
+      if (!(num(qs[i]) > 0)) continue;
+      lines.push({ product_id: pids[i], unit: units[i], quantity: num(qs[i]), unit_price: num(ps[i]) });
+    }
+    if (!lines.length) fail('أضف صنفاً واحداً على الأقل بكمية أكبر من صفر');
+    return lines;
+  }
+
+  async function click(a, btn) {
+    var id = btn.getAttribute('data-id');
+    if (a === 'adj-approve') { must(await C().sb.rpc('approve_stock_adjustment', { p_adjustment_id: id })); return C().toast('تم اعتماد التسوية'); }
+    if (a === 'inv-edit') { st.editInv = id; return C().refresh(); }
+    if (a === 'inv-cancel-edit') { st.editInv = null; return C().refresh(); }
+    if (a === 'exp-reverse') {
+      var reason = prompt('سبب التصحيح (إلزامي):');
+      if (reason === null) return;
+      if (reason.trim().length < 3) fail('سبب التصحيح مطلوب');
+      must(await C().sb.rpc('reverse_expense', { p_expense_id: id, p_reason: reason.trim() }));
+      return C().toast('تم تسجيل القيد العكسي');
+    }
+    if (a === 'purge-open') {
+      var counts = must(await C().sb.rpc('count_test_data'));
+      st.purge = counts;
+      return C().refresh();
+    }
+    if (a === 'purge-run') {
+      var typed = document.getElementById('purgeConfirm');
+      if (!typed || typed.value.trim() !== 'TEST') fail('اكتب كلمة TEST بالضبط للتأكيد');
+      if (!confirm('سيُحذف كل ما هو موسوم بـ TEST نهائياً. هل أنت متأكد؟')) return;
+      var res = must(await C().sb.rpc('purge_test_data'));
+      st.purge = null;
+      C().toast('تم حذف بيانات TEST');
+      return C().refresh();
+    }
+    if (a === 'line-add') {
+      var holder = document.getElementById('invLines');
+      if (holder) { var t = document.createElement('div'); t.innerHTML = invLineHTML(st.products || []); holder.appendChild(t.firstChild); }
+      return;
+    }
+    if (a === 'inv-post') { must(await C().sb.rpc('post_sales_invoice', { p_invoice_id: id })); return C().toast('تم ترحيل الفاتورة'); }
+    if (a === 'inv-del') {
+      if (!confirm('إلغاء المسودة وتحرير حجز أصنافها؟')) return;
+      must(await C().sb.rpc('delete_sales_draft', { p_invoice_id: id }));
+      if (st.editInv === id) st.editInv = null;
+      return C().toast('تم إلغاء المسودة وتحرير الحجز');
+    }
+  }
+
+  // ---------- التسجيل ----------
+  window.OpsPages = window.OpsPages || {};
+  Object.assign(window.OpsPages, P);
+  window.OpsExt = { submit: submit, click: click };
+})();
+
+</script>
+
+</body>
+</html>
